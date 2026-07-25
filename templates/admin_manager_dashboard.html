@@ -1,0 +1,928 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/admin_dashboard.css' %}">
+    <style>
+        .manager-badge {
+            font-size: 9px; font-weight: 800; letter-spacing: 1px;
+            padding: 3px 8px; border-radius: 20px;
+            background: linear-gradient(135deg, #0d9488, #0f766e);
+            color: #fff; text-transform: uppercase;
+        }
+        .avd-role { background: #0d9488 !important; }
+        .readonly-notice {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11.5px; color: #0d9488; font-weight: 600;
+            background: #f0fdfa; border: 1px solid #99f6e4;
+            padding: 4px 10px; border-radius: 20px;
+            white-space: nowrap;
+        }
+        .fullaccess-notice {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11.5px; color: #2563eb; font-weight: 600;
+            background: #eff6ff; border: 1px solid #bfdbfe;
+            padding: 4px 10px; border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        /* ── Fix: no horizontal overflow ── */
+        html, body { overflow-x: hidden; max-width: 100%; }
+        .main { min-width: 0; overflow-x: hidden; }
+        .content { min-width: 0; overflow-x: hidden; }
+        .section { min-width: 0; }
+        .topbar { overflow: visible !important; }  /* keep dropdown visible */
+
+        /* ── Credentials UI ── */
+        .cg-type-cards { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:28px; }
+        .cg-type-card {
+            flex:1; min-width:140px; max-width:220px;
+            border:2px solid #e5e7eb; border-radius:14px;
+            padding:20px 18px; cursor:pointer;
+            background:#fff; transition:all 0.18s;
+            display:flex; flex-direction:column; align-items:center; gap:10px;
+            user-select:none; position:relative;
+        }
+        .cg-type-card:hover { border-color:#0d9488; transform:translateY(-2px); box-shadow:0 8px 24px rgba(13,148,136,0.12); }
+        .cg-type-card.active { border-color:#0d9488; background:linear-gradient(135deg,#f0fdfa,#fff); box-shadow:0 6px 20px rgba(13,148,136,0.15); }
+        .cg-type-card .cg-icon { width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+        .cg-type-card .cg-label { font-size:14px;font-weight:700;color:#1a1d23; }
+        .cg-type-card .cg-count { font-size:11px;color:#9ca3af;font-weight:500; }
+        .cg-type-card .cg-active-dot { position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%;background:#0d9488;display:none; }
+        .cg-type-card.active .cg-active-dot { display:block; }
+        .cg-panel { display:none; background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,.07); overflow:hidden; margin-bottom:20px; }
+        .cg-panel.open { display:block; }
+        .cg-panel-header {
+            padding:14px 20px; border-bottom:1px solid #f3f4f6;
+            display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+            background:#fafafa;
+        }
+        .cg-search { border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 12px;font-size:12.5px;font-family:inherit;outline:none;width:200px;transition:border-color 0.15s; }
+        .cg-search:focus { border-color:#0d9488; }
+        .cg-user-row { display:flex;align-items:center;gap:13px;padding:11px 20px;border-bottom:1px solid #f9fafb;cursor:pointer;transition:background 0.1s; }
+        .cg-user-row:hover { background:#f9fafb; }
+        .cg-user-row.selected { background:#f0fdfa; }
+        .cg-user-check { width:18px;height:18px;border-radius:5px;border:2px solid #d1d5db;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;background:#fff; }
+        .cg-user-row.selected .cg-user-check { background:#0d9488;border-color:#0d9488; }
+        .cg-avatar { width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0; }
+        .cg-user-name { font-size:13.5px;font-weight:600;color:#1a1d23; }
+        .cg-user-sub  { font-size:11px;color:#9ca3af; }
+        .cg-bar { position:sticky;bottom:0;background:#fff;border-top:1px solid #e5e7eb;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 -4px 16px rgba(0,0,0,.05);z-index:10; }
+        .cg-generate-btn { padding:10px 22px;background:#0d9488;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;transition:background 0.15s; }
+        .cg-generate-btn:hover { background:#0f766e; }
+        .cg-generate-btn:disabled { opacity:0.6;cursor:not-allowed; }
+        .cg-cred-box { display:flex;align-items:center;gap:6px; }
+        .cg-cred-code { font-family:'Courier New',monospace;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:6px; }
+        .cg-copy-mini { background:none;border:none;cursor:pointer;padding:3px;border-radius:5px;color:#9ca3af;transition:color 0.12s; }
+        .cg-copy-mini:hover { color:#0d9488; }
+        @keyframes cgFadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+        .cg-panel.open { animation:cgFadeIn 0.2s ease; }
+
+        .btn-danger { background:#fef2f2 !important; color:#dc2626 !important; border:1px solid #fecaca !important; }
+        .btn-danger:hover { background:#fee2e2 !important; }
+        .btn-primary { background:#0d9488 !important; color:#fff !important; }
+        .btn-primary:hover { background:#0f766e !important; }
+    </style>
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- ══════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════ -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+        </div>
+        <div class="brand-text">
+            <h2>Institution<br>Management</h2>
+            <span>Management Console</span>
+        </div>
+        <span class="manager-badge">MGR</span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-label">Overview</div>
+        <a class="nav-item active" href="#" onclick="showSection('dashboard',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dashboard
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('credentials',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Credentials
+        </a>
+
+        <div class="nav-label">People — Full Access</div>
+        <a class="nav-item" href="#" onclick="showSection('students',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Students
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('teachers',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Teachers
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('parents',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Parents
+        </a>
+
+        <div class="nav-label">Academics — Full Access</div>
+        <a class="nav-item" href="#" onclick="showSection('classes',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+            Classes
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('subjects',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Subjects
+        </a>
+
+        <div class="nav-label">View Only</div>
+        <a class="nav-item" href="#" onclick="showSection('assignments',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+            Teacher Assignments
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('timetable',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+            Timetable
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('exams',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Exams
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('results',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Grades &amp; Results
+        </a>
+        <a class="nav-item" href="#" onclick="showSection('attendance',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Attendance
+        </a>
+    </nav>
+
+    <div class="sidebar-user">
+        <div class="user-avatar" style="background:#0d9488;">{{ request.user.get_full_name|default:request.user.username|first|upper }}</div>
+        <div class="user-info">
+            <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
+            <p>{{ request.user.email }}</p>
+        </div>
+    </div>
+</aside>
+
+<!-- ══════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════ -->
+<main class="main">
+    <header class="topbar">
+        <h1 id="pageTitle">Dashboard</h1>
+        <div class="topbar-right">
+            <span id="topDate"></span>
+            <div class="avatar-wrap">
+                <div class="admin-top-avatar" id="topAvatarBtn" style="background:#0d9488;">{{ request.user.get_full_name|default:request.user.username|first|upper }}</div>
+                <div class="avatar-dropdown" id="topAvatarDropdown">
+                    <div class="avd-profile">
+                        <div class="avd-avatar" style="background:#0d9488;">{{ request.user.get_full_name|default:request.user.username|first|upper }}</div>
+                        <div>
+                            <div class="avd-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                            <div class="avd-email">{{ request.user.email }}</div>
+                            <span class="avd-role" style="background:#0d9488;color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;">MANAGER</span>
+                        </div>
+                    </div>
+                    <div class="avd-menu">
+                        <a href="#" class="avd-item" onclick="showSection('dashboard', document.querySelector('.nav-item[onclick*=\'dashboard\']')); closeAllDropdowns(); return false;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            Dashboard
+                        </a>
+                        <div class="avd-divider"></div>
+                        <a href="{% url 'password_change' %}" class="avd-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            Change Password
+                        </a>
+                        <div class="avd-divider"></div>
+                        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                            {% csrf_token %}
+                            <button type="submit" class="avd-item danger" style="width:100%;border:none;background:none;font-family:inherit;text-align:left;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                Log Out
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="content">
+
+        {% if messages %}
+        {% for message in messages %}
+        <div id="toast-msg" data-section="{{ message.tags }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- ═══════════ DASHBOARD ═══════════ -->
+        <div id="section-dashboard" class="section active">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+                <p style="color:var(--text-secondary);font-size:14px;">Welcome back, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>. Here's a quick overview.</p>
+                <span class="fullaccess-notice">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Full Access (People &amp; Academics)
+                </span>
+            </div>
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#eff6ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                    <div class="stat-info"><p>Students</p><h3>{{ students|length }}</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#f0fdf4;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                    <div class="stat-info"><p>Teachers</p><h3>{{ teachers|length }}</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#fffbeb;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                    <div class="stat-info"><p>Classes</p><h3>{{ classes|length }}</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#fdf4ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+                    <div class="stat-info"><p>Subjects</p><h3>{{ subjects|length }}</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#f0fdf4;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="stat-info"><p>Present Today</p><h3>{{ present_today }}</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#fef2f2;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+                    <div class="stat-info"><p>Absent Today</p><h3>{{ absent_today }}</h3></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#fffbeb;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+                    <div class="stat-info"><p>On Leave Today</p><h3>{{ leave_today }}</h3></div>
+                </div>
+            </div>
+            <div style="background:var(--white);border-radius:12px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:24px;">
+                <p style="font-size:13px;font-weight:700;margin-bottom:12px;">Quick Actions</p>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                    <a href="{% url 'add_student' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Student</a>
+                    <a href="{% url 'add_teacher' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Teacher</a>
+                    <a href="{% url 'add_parent' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Parent</a>
+                    <a href="{% url 'add_class' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Class</a>
+                    <a href="{% url 'add_subject' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Subject</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ CREDENTIALS ═══════════ -->
+        <div id="section-credentials" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:22px;">
+                <div>
+                    <h2 style="font-size:15px;font-weight:700;margin-bottom:3px;">Credentials Generator</h2>
+                    <p style="font-size:12px;color:var(--text-secondary);">Select a group → pick users → generate login credentials</p>
+                </div>
+                <span class="fullaccess-notice">Full Access</span>
+            </div>
+            <div class="cg-type-cards">
+                <div class="cg-type-card" id="cgcard-students" onclick="cgOpenType('students')">
+                    <div class="cg-active-dot"></div>
+                    <div class="cg-icon" style="background:#eff6ff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                    <div class="cg-label">Students</div>
+                    <div class="cg-count" id="cgcount-students">{{ students|length }} total</div>
+                </div>
+                <div class="cg-type-card" id="cgcard-teachers" onclick="cgOpenType('teachers')">
+                    <div class="cg-active-dot"></div>
+                    <div class="cg-icon" style="background:#f0fdf4;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                    <div class="cg-label">Teachers</div>
+                    <div class="cg-count" id="cgcount-teachers">{{ teachers|length }} total</div>
+                </div>
+                <div class="cg-type-card" id="cgcard-parents" onclick="cgOpenType('parents')">
+                    <div class="cg-active-dot"></div>
+                    <div class="cg-icon" style="background:#fdf4ff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                    <div class="cg-label">Parents</div>
+                    <div class="cg-count" id="cgcount-parents">{{ parents|length }} total</div>
+                </div>
+            </div>
+            <div class="cg-panel" id="cg-user-panel">
+                <div class="cg-panel-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div id="cg-panel-icon" style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;"></div>
+                        <div>
+                            <div id="cg-panel-title" style="font-size:13.5px;font-weight:700;"></div>
+                            <div id="cg-panel-subtitle" style="font-size:11px;color:#9ca3af;"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <input class="cg-search" id="cg-search" placeholder="Search by name…" oninput="cgSearch(this.value)">
+                        <button onclick="cgSelectAll()" style="padding:6px 14px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Select All</button>
+                        <button onclick="cgDeselectAll()" style="padding:6px 14px;background:#fff;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Deselect All</button>
+                    </div>
+                </div>
+                <div id="cg-user-list" style="max-height:380px;overflow-y:auto;"></div>
+                <div class="cg-bar">
+                    <div style="font-size:13px;color:#6b7280;"><span id="cg-selected-count" style="font-weight:700;color:#0d9488;">0</span> selected</div>
+                    <button class="cg-generate-btn" id="cg-gen-btn" onclick="cgGenerate()" disabled>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Generate Credentials
+                    </button>
+                </div>
+            </div>
+            <div id="cg-results-panel" style="display:none;">
+                <div style="background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
+                    <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;background:linear-gradient(135deg,#f0fdfa,#fff);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                            <div>
+                                <div style="font-size:14px;font-weight:700;">Credentials Generated</div>
+                                <div style="font-size:11.5px;color:#6b7280;" id="cg-result-summary"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button onclick="cgCopyAll()" id="cg-copyall-btn" style="padding:7px 14px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy All
+                            </button>
+                            <button onclick="cgDownloadPDF()" style="padding:7px 14px;background:#1a1d23;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF
+                            </button>
+                            <button onclick="cgReset()" style="padding:7px 14px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Generate More</button>
+                        </div>
+                    </div>
+                    <div style="padding:10px 20px;background:#fffbeb;border-bottom:1px solid #fef3c7;display:flex;align-items:center;gap:8px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span style="font-size:12px;color:#92400e;font-weight:500;">Share these credentials privately. Users can log in and change their password after first login.</span>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;min-width:500px;">
+                            <thead>
+                                <tr style="background:#f9fafb;border-bottom:2px solid #e5e7eb;">
+                                    <th style="padding:11px 20px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;">#</th>
+                                    <th style="padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;">Name</th>
+                                    <th style="padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;">Info</th>
+                                    <th style="padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;">Username</th>
+                                    <th style="padding:11px 16px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#9ca3af;">Password</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cg-result-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ STUDENTS ═══════════ -->
+        <div id="section-students" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+                <h2 style="font-size:15px;font-weight:700;">Students</h2>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="fullaccess-notice">Full Access</span>
+                    <a href="{% url 'add_student' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Student</a>
+                </div>
+            </div>
+            {% for cls in classes %}
+            <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px;overflow:hidden;">
+                <div onclick="toggleStudents('stu-{{ cls.id }}')" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:38px;height:38px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div style="font-size:14px;font-weight:700;">{{ cls }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="display:flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:8px;background:#eff6ff;">
+                            <span style="font-size:16px;font-weight:700;color:#2563eb;line-height:1;">{{ cls.total_students }}</span>
+                            <span style="font-size:9px;font-weight:600;color:#2563eb;text-transform:uppercase;letter-spacing:.4px;">Students</span>
+                        </div>
+                        <svg id="chevron-stu-{{ cls.id }}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                </div>
+                <div id="stu-{{ cls.id }}" style="display:none;border-top:1px solid #f3f4f6;">
+                    <div class="table-scroll">
+                        <table>
+                            <thead><tr><th>Roll No</th><th>Name</th><th>Guardian</th><th>Gender</th><th>Phone</th><th>Admission Date</th><th style="text-align:center;">Actions</th></tr></thead>
+                            <tbody>
+                                {% for student in students %}{% if student.student_class.id == cls.id %}
+                                <tr>
+                                    <td>{{ student.roll_number|default:"-" }}</td>
+                                    <td><div style="font-weight:600;font-size:13px;">{{ student.full_name }}</div><div style="font-size:11px;color:var(--text-muted);">{{ student.admission_number|default:"-" }}</div></td>
+                                    <td>{{ student.guardian_name }}</td>
+                                    <td>{{ student.get_gender_display }}</td>
+                                    <td>{{ student.phone|default:"-" }}</td>
+                                    <td>{{ student.admission_date }}</td>
+                                    <td style="text-align:center;white-space:nowrap;">
+                                        <a href="{% url 'edit_student' student.pk %}" class="btn btn-yellow" style="padding:4px 10px;font-size:11px;">Edit</a>
+                                        <a href="{% url 'delete_student' student.pk %}" class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="return confirm('Delete?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endif %}{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not students %}<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:48px;background:var(--white);border-radius:12px;">No students found.</div>{% endif %}
+        </div>
+
+        <!-- ═══════════ TEACHERS ═══════════ -->
+        <div id="section-teachers" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+                <h2 style="font-size:15px;font-weight:700;">All Teachers</h2>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="fullaccess-notice">Full Access</span>
+                    <a href="{% url 'add_teacher' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Teacher</a>
+                </div>
+            </div>
+            <div class="cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+                {% for teacher in teachers %}
+                <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
+                    <div style="padding:18px 18px 14px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #f3f4f6;">
+                        <div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0;background:#16a34a;">{{ teacher.full_name|first|upper }}</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:14.5px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ teacher.full_name }}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">ID: {{ teacher.employee_id|default:"Not assigned" }}</div>
+                        </div>
+                        <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;flex-shrink:0;{% if teacher.gender == 'M' %}background:#eff6ff;color:#2563eb;{% else %}background:#fdf4ff;color:#9333ea;{% endif %}">{{ teacher.get_gender_display }}</span>
+                    </div>
+                    <div style="padding:12px 18px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #f3f4f6;">
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);">{{ teacher.phone|default:"No phone" }}</div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);">Joined: {{ teacher.joining_date|default:"Not set" }}</div>
+                    </div>
+                    <div style="padding:12px 18px;">
+                        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:8px;">Assigned Subjects</div>
+                        {% for ts in teacher.assignments.all %}
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f9fafb;gap:8px;">
+                            <div style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ts.subject.name }}</div>
+                            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f0fdf4;color:#16a34a;flex-shrink:0;">{{ ts.assigned_class }}</span>
+                        </div>
+                        {% empty %}<div style="font-size:12px;color:var(--text-muted);padding:4px 0;">No subjects assigned.</div>{% endfor %}
+                    </div>
+                    <div style="padding:10px 18px;display:flex;gap:8px;border-top:1px solid #f3f4f6;flex-wrap:wrap;">
+                        <a href="{% url 'edit_teacher' teacher.id %}" class="btn btn-yellow" style="padding:5px 12px;font-size:11.5px;">Edit</a>
+                        <a href="{% url 'delete_teacher' teacher.id %}" class="btn btn-danger" style="padding:5px 12px;font-size:11.5px;" onclick="return confirm('Delete?')">Delete</a>
+                    </div>
+                </div>
+                {% empty %}<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:13px;padding:48px;">No teachers found.</div>{% endfor %}
+            </div>
+        </div>
+
+        <!-- ═══════════ PARENTS ═══════════ -->
+        <div id="section-parents" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+                <h2 style="font-size:15px;font-weight:700;">All Parents</h2>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="fullaccess-notice">Full Access</span>
+                    <a href="{% url 'add_parent' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Parent</a>
+                </div>
+            </div>
+            <div class="cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+                {% for parent in parents %}
+                <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
+                    <div style="padding:18px 18px 14px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #f3f4f6;">
+                        <div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0;background:{% if parent.relation == 'father' %}#2563eb{% elif parent.relation == 'mother' %}#9333ea{% else %}#d97706{% endif %};">{{ parent.full_name|first|upper }}</div>
+                        <div style="min-width:0;">
+                            <div style="font-size:14.5px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ parent.full_name }}</div>
+                            <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;{% if parent.relation == 'father' %}background:#eff6ff;color:#2563eb;{% elif parent.relation == 'mother' %}background:#fdf4ff;color:#9333ea;{% else %}background:#fffbeb;color:#d97706;{% endif %}">{{ parent.get_relation_display }}</span>
+                        </div>
+                        <div style="margin-left:auto;font-size:12px;color:var(--text-secondary);flex-shrink:0;">{{ parent.phone|default:"-" }}</div>
+                    </div>
+                    <div style="padding:12px 18px;">
+                        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:8px;">Children ({{ parent.students.count }})</div>
+                        {% for student in parent.students.all %}
+                        <div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid #f9fafb;">
+                            <div style="width:28px;height:28px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text-secondary);flex-shrink:0;">{{ student.full_name|first|upper }}</div>
+                            <div style="min-width:0;">
+                                <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ student.full_name }}</div>
+                                <div style="font-size:11px;color:var(--text-muted);">{{ student.admission_number|default:"-" }}</div>
+                            </div>
+                            <span style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f0fdf4;color:#16a34a;flex-shrink:0;">{{ student.student_class }}</span>
+                        </div>
+                        {% empty %}<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">No children linked.</div>{% endfor %}
+                    </div>
+                    <div style="padding:10px 18px;display:flex;gap:8px;border-top:1px solid #f3f4f6;flex-wrap:wrap;">
+                        <a href="{% url 'edit_parent' parent.id %}" class="btn btn-yellow" style="padding:5px 12px;font-size:11.5px;">Edit</a>
+                        <a href="{% url 'delete_parent' parent.id %}" class="btn btn-danger" style="padding:5px 12px;font-size:11.5px;" onclick="return confirm('Delete?')">Delete</a>
+                    </div>
+                </div>
+                {% empty %}<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:13px;padding:48px;">No parents found.</div>{% endfor %}
+            </div>
+        </div>
+
+        <!-- ═══════════ CLASSES ═══════════ -->
+        <div id="section-classes" class="section">
+            <div class="table-card">
+                <div class="table-card-header">
+                    <h2>Classes</h2>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="fullaccess-notice">Full Access</span>
+                        <a href="{% url 'add_class' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Class</a>
+                    </div>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead><tr><th>Class Name</th><th>Section</th><th>Academic Year</th><th>Class Teacher</th><th style="text-align:center;">Actions</th></tr></thead>
+                        <tbody>
+                            {% for cls in classes %}
+                            <tr>
+                                <td>{{ cls.name }}</td>
+                                <td>{{ cls.section }}</td>
+                                <td>{{ cls.academic_year }}</td>
+                                <td>{{ cls.class_teacher|default:"-" }}</td>
+                                <td style="text-align:center;white-space:nowrap;">
+                                    <a href="{% url 'edit_class' cls.id %}" class="btn btn-yellow" style="padding:4px 10px;font-size:11px;">Edit</a>
+                                    <a href="{% url 'delete_class' cls.id %}" class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="return confirm('Delete?')">Delete</a>
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="5" class="empty-cell">No classes found.</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ SUBJECTS ═══════════ -->
+        <div id="section-subjects" class="section">
+            <div class="table-card">
+                <div class="table-card-header">
+                    <h2>Subjects</h2>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="fullaccess-notice">Full Access</span>
+                        <a href="{% url 'add_subject' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Subject</a>
+                    </div>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead><tr><th>Name</th><th>Code</th><th style="text-align:center;">Actions</th></tr></thead>
+                        <tbody>
+                            {% for subject in subjects %}
+                            <tr>
+                                <td>{{ subject.name }}</td>
+                                <td>{{ subject.code }}</td>
+                                <td style="text-align:center;white-space:nowrap;">
+                                    <a href="{% url 'edit_subject' subject.id %}" class="btn btn-yellow" style="padding:4px 10px;font-size:11px;">Edit</a>
+                                    <a href="{% url 'delete_subject' subject.id %}" class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="return confirm('Delete?')">Delete</a>
+                                </td>
+                            </tr>
+                            {% empty %}<tr><td colspan="3" class="empty-cell">No subjects found.</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ TEACHER ASSIGNMENTS — view only ═══════════ -->
+        <div id="section-assignments" class="section">
+            <div class="table-card">
+                <div class="table-card-header">
+                    <h2>Teacher Subject Assignments</h2>
+                    <span class="readonly-notice">View Only</span>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead><tr><th>Teacher</th><th>Subject</th><th>Class</th><th>Academic Year</th></tr></thead>
+                        <tbody>
+                            {% for assignment in assignments %}
+                            <tr>
+                                <td>{{ assignment.teacher.full_name }}</td>
+                                <td>{{ assignment.subject.name }}</td>
+                                <td>{{ assignment.assigned_class }}</td>
+                                <td>{{ assignment.academic_year }}</td>
+                            </tr>
+                            {% empty %}<tr><td colspan="4" class="empty-cell">No assignments found.</td></tr>{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ TIMETABLE — view only, loads from DB ═══════════ -->
+        <div id="section-timetable" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+                <h2 style="font-size:15px;font-weight:700;">Timetable</h2>
+                <span class="readonly-notice">View Only</span>
+            </div>
+            <div class="tt2-tabs">
+                <button class="tt2-tab active" onclick="tt2Tab('class',this)">📋 Class View</button>
+                <button class="tt2-tab" onclick="tt2Tab('teacher',this)">👤 Teacher View</button>
+            </div>
+
+            <!-- CLASS VIEW -->
+            <div id="tt2-panel-class">
+                <div style="background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+                    <div class="tt2-field" style="flex-direction:row;align-items:center;gap:8px;">
+                        <label style="margin:0;white-space:nowrap;">Class:</label>
+                        <select id="tt2-vc-class" onchange="tt2RenderClass()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12.5px;font-family:inherit;outline:none;min-width:0;width:100%;max-width:200px;">
+                            <option value="">-- Select Class --</option>
+                            {% for cls in classes %}<option value="{{ cls.id }}" data-label="{{ cls }}">{{ cls }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="tt2-field" style="flex-direction:row;align-items:center;gap:8px;">
+                        <label style="margin:0;white-space:nowrap;">Day:</label>
+                        <select id="tt2-vc-day" onchange="tt2RenderClass()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12.5px;font-family:inherit;outline:none;min-width:0;max-width:150px;">
+                            <option value="all">All Days</option>
+                        </select>
+                    </div>
+                    <button onclick="tt2PDF('tt2-cv-table','Class Timetable')" class="btn" style="background:#1a1d23;color:#fff;padding:6px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;border-radius:8px;margin-left:auto;">⬇ PDF</button>
+                </div>
+                <div id="tt2-cv-out" style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow-x:auto;padding:20px;">
+                    <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:40px;">Select a class to view its timetable.</div>
+                </div>
+            </div>
+
+            <!-- TEACHER VIEW -->
+            <div id="tt2-panel-teacher" style="display:none;">
+                <div style="background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+                    <div class="tt2-field" style="flex-direction:row;align-items:center;gap:8px;">
+                        <label style="margin:0;white-space:nowrap;">Teacher:</label>
+                        <select id="tt2-vt-teacher" onchange="tt2RenderTeacher()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12.5px;font-family:inherit;outline:none;min-width:0;max-width:220px;">
+                            <option value="">-- Select Teacher --</option>
+                            {% for teacher in teachers %}<option value="{{ teacher.full_name }}">{{ teacher.full_name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="tt2-field" style="flex-direction:row;align-items:center;gap:8px;">
+                        <label style="margin:0;white-space:nowrap;">Day:</label>
+                        <select id="tt2-vt-day" onchange="tt2RenderTeacher()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12.5px;font-family:inherit;outline:none;min-width:0;max-width:150px;">
+                            <option value="all">All Days</option>
+                        </select>
+                    </div>
+                    <button onclick="tt2PDF('tt2-tv-table','Teacher Schedule')" class="btn" style="background:#1a1d23;color:#fff;padding:6px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;border-radius:8px;margin-left:auto;">⬇ PDF</button>
+                </div>
+                <div id="tt2-tv-out" style="background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow-x:auto;padding:20px;">
+                    <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:40px;">Select a teacher to view their schedule.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ EXAMS ═══════════ -->
+        <div id="section-exams" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                <h2 style="font-size:15px;font-weight:700;">Exams</h2>
+                <span class="readonly-notice">View Only — managed by teachers</span>
+            </div>
+            <div class="cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+                {% for exam in exams %}
+                <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;border-top:3px solid {% if exam.exam_type == 'monthly' %}#2563eb{% elif exam.exam_type == 'midterm' %}#d97706{% elif exam.exam_type == 'final' %}#dc2626{% else %}#9333ea{% endif %};">
+                    <div style="padding:16px 18px;border-bottom:1px solid #f3f4f6;">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+                            <div style="font-size:14.5px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;">{{ exam.name }}</div>
+                            <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;">{{ exam.get_exam_type_display }}</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-secondary);">{{ exam.subject.name }} · {{ exam.assigned_class }}</div>
+                    </div>
+                    <div style="padding:12px 18px;display:flex;flex-direction:column;gap:7px;">
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--text-muted);">Date</span><span style="font-weight:600;">{{ exam.exam_date }}</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--text-muted);">Total Marks</span><span style="font-weight:600;">{{ exam.total_marks }}</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--text-muted);">Passing Marks</span><span style="font-weight:600;color:#16a34a;">{{ exam.passing_marks }}</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--text-muted);">Created By</span><span style="font-weight:600;">{{ exam.created_by|default:"—" }}</span></div>
+                    </div>
+                </div>
+                {% empty %}<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-size:13px;padding:48px;">No exams found.</div>{% endfor %}
+            </div>
+        </div>
+
+        <!-- ═══════════ RESULTS ═══════════ -->
+        <div id="section-results" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+                <h2 style="font-size:15px;font-weight:700;">Grades &amp; Results</h2>
+                <span class="readonly-notice">View Only — managed by teachers</span>
+            </div>
+            {% for cls in classes %}
+            <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px;overflow:hidden;">
+                <div onclick="toggleClassResults('results-{{ cls.id }}')" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:1px solid #f3f4f6;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:38px;height:38px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                        <div><div style="font-size:14px;font-weight:700;">{{ cls }}</div><div style="font-size:11px;color:var(--text-muted);">{{ cls.academic_year }}</div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <div style="display:flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:8px;background:#f0f2f5;"><span style="font-size:16px;font-weight:700;line-height:1;">{{ cls.total_students }}</span><span style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Total</span></div>
+                        <div style="display:flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:8px;background:#f0fdf4;"><span style="font-size:16px;font-weight:700;color:#16a34a;line-height:1;">{{ cls.pass_count }}</span><span style="font-size:9px;font-weight:600;color:#16a34a;text-transform:uppercase;">Pass</span></div>
+                        <div style="display:flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:8px;background:#fef2f2;"><span style="font-size:16px;font-weight:700;color:#dc2626;line-height:1;">{{ cls.fail_count }}</span><span style="font-size:9px;font-weight:600;color:#dc2626;text-transform:uppercase;">Fail</span></div>
+                        <svg id="chevron-results-{{ cls.id }}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                </div>
+                <div id="results-{{ cls.id }}" style="display:none;">
+                    <div class="table-scroll">
+                        <table>
+                            <thead><tr><th>Student</th><th>Exam</th><th>Marks</th><th>Total</th><th>Percentage</th><th>Status</th></tr></thead>
+                            <tbody>
+                                {% for result in results %}{% if result.student.student_class.id == cls.id %}
+                                <tr>
+                                    <td><div style="font-weight:600;font-size:13px;">{{ result.student.full_name }}</div></td>
+                                    <td>{{ result.exam.name }}</td>
+                                    <td style="font-weight:600;">{{ result.marks_obtained }}</td>
+                                    <td>{{ result.exam.total_marks }}</td>
+                                    <td><span style="font-size:12px;font-weight:600;">{{ result.percentage }}%</span></td>
+                                    <td>{% if result.is_passing %}<span class="badge badge-active">Pass</span>{% else %}<span class="badge badge-inactive">Fail</span>{% endif %}</td>
+                                </tr>
+                                {% endif %}{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not results %}<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:48px;background:var(--white);border-radius:12px;">No results found.</div>{% endif %}
+        </div>
+
+        <!-- ═══════════ ATTENDANCE — with date filter ═══════════ -->
+        <div id="section-attendance" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+                <h2 style="font-size:15px;font-weight:700;">Attendance</h2>
+                <span class="readonly-notice">View Only — managed by teachers</span>
+            </div>
+            {% for cls in classes %}
+            <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px;overflow:hidden;">
+                <div onclick="toggleAttendance('att-{{ cls.id }}')" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:38px;height:38px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                        <div style="font-size:14px;font-weight:700;">{{ cls }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="display:flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:8px;background:#f0fdf4;"><span style="font-size:16px;font-weight:700;color:#16a34a;line-height:1;">{{ cls.total_students }}</span><span style="font-size:9px;font-weight:600;color:#16a34a;text-transform:uppercase;">Students</span></div>
+                        <svg id="chevron-att-{{ cls.id }}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                </div>
+                <div id="att-{{ cls.id }}" style="display:none;border-top:1px solid #f3f4f6;">
+                    <!-- Status filter + Date filter -->
+                    <div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                        <button class="att-filter-btn" onclick="filterAttendance('{{ cls.id }}','all',this)" style="padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:#1a1d23;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">All</button>
+                        <button class="att-filter-btn" onclick="filterAttendance('{{ cls.id }}','present',this)" style="padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:#fff;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Present</button>
+                        <button class="att-filter-btn" onclick="filterAttendance('{{ cls.id }}','absent',this)" style="padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:#fff;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Absent</button>
+                        <button class="att-filter-btn" onclick="filterAttendance('{{ cls.id }}','leave',this)" style="padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:#fff;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Leave</button>
+                        <!-- Date filter -->
+                        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <input type="date" id="att-date-{{ cls.id }}" onchange="filterAttendanceByDate('{{ cls.id }}')"
+                                style="border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12px;font-family:inherit;color:var(--text-primary);outline:none;background:#fff;cursor:pointer;">
+                            <button onclick="clearAttendanceDate('{{ cls.id }}')"
+                                style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">✕ Clear</button>
+                        </div>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead><tr><th>Student</th><th>Subject</th><th>Date</th><th>Status</th><th>Marked By</th></tr></thead>
+                            <tbody id="att-tbody-{{ cls.id }}">
+                                {% for record in attendance %}{% if record.student.student_class.id == cls.id %}
+                                <tr class="att-row-{{ cls.id }}" data-status="{{ record.status }}">
+                                    <td><div style="font-weight:600;font-size:13px;">{{ record.student.full_name }}</div></td>
+                                    <td>{{ record.subject.name }}</td>
+                                    <td>{{ record.date }}</td>
+                                    <td>{% if record.status == 'present' %}<span class="badge badge-active">Present</span>{% elif record.status == 'absent' %}<span class="badge badge-inactive">Absent</span>{% else %}<span class="badge" style="background:#fffbeb;color:#d97706;">Leave</span>{% endif %}</td>
+                                    <td>{{ record.marked_by|default:"-" }}</td>
+                                </tr>
+                                {% endif %}{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="att-empty-{{ cls.id }}" style="display:none;text-align:center;color:var(--text-muted);font-size:13px;padding:24px;">No records match this filter.</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not attendance %}<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:48px;background:var(--white);border-radius:12px;">No attendance records found.</div>{% endif %}
+        </div>
+
+    </div><!-- end .content -->
+</main>
+
+<script src="{% static 'js/admin_dashboard.js' %}"></script>
+
+<!-- Credentials JS -->
+<script>
+(function(){
+const CG_PEOPLE = {
+    students: [{% for s in students %}{ id:{{s.pk}}, name:"{{s.full_name|escapejs}}", sub:"{{s.student_class|escapejs}}", type:"student", color:"#3b82f6", bg:"#eff6ff" },{% endfor %}],
+    teachers: [{% for t in teachers %}{ id:{{t.pk}}, name:"{{t.full_name|escapejs}}", sub:"{{t.employee_id|default:''|escapejs}}", type:"teacher", color:"#16a34a", bg:"#f0fdf4" },{% endfor %}],
+    parents:  [{% for p in parents %}{ id:{{p.pk}}, name:"{{p.full_name|escapejs}}", sub:"{{p.get_relation_display|escapejs}} — {% for s in p.students.all %}{{s.full_name|escapejs}} ({{s.student_class|escapejs}}){% if not forloop.last %}, {% endif %}{% endfor %}", type:"parent", color:"#a855f7", bg:"#fdf4ff" },{% endfor %}],
+};
+const TYPE_META = {
+    students: { label:"Students", color:"#3b82f6", bg:"#eff6ff", iconStroke:"#3b82f6" },
+    teachers: { label:"Teachers", color:"#16a34a", bg:"#f0fdf4", iconStroke:"#16a34a" },
+    parents:  { label:"Parents",  color:"#a855f7", bg:"#fdf4ff", iconStroke:"#a855f7" },
+};
+let currentType = null, selectedIds = new Set(), generatedList = [];
+function makeUsername(name){ return name.trim().toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9]/g,'') || 'user'; }
+window.cgOpenType = function(type){
+    if(currentType === type){ currentType=null; document.getElementById('cg-user-panel').classList.remove('open'); document.getElementById('cgcard-'+type).classList.remove('active'); return; }
+    if(currentType) document.getElementById('cgcard-'+currentType).classList.remove('active');
+    currentType=type; selectedIds.clear(); document.getElementById('cg-search').value='';
+    document.getElementById('cgcard-'+type).classList.add('active');
+    const meta=TYPE_META[type];
+    document.getElementById('cg-panel-title').textContent=meta.label;
+    document.getElementById('cg-panel-subtitle').textContent=CG_PEOPLE[type].length+' people';
+    document.getElementById('cg-panel-icon').style.background=meta.bg;
+    document.getElementById('cg-panel-icon').innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${meta.iconStroke}" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    renderList(CG_PEOPLE[type]);
+    document.getElementById('cg-user-panel').classList.add('open');
+    document.getElementById('cg-results-panel').style.display='none';
+    updateBar();
+};
+function renderList(people){
+    const ul=document.getElementById('cg-user-list');
+    if(!people.length){ ul.innerHTML='<div style="padding:32px;text-align:center;color:#9ca3af;font-size:13px;">No people found.</div>'; return; }
+    ul.innerHTML=people.map(function(p){
+        const uname=makeUsername(p.name), initials=p.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase(), sel=selectedIds.has(p.id);
+        return `<div class="cg-user-row${sel?' selected':''}" id="cgrow-${p.id}" onclick="cgToggle(${p.id})">
+            <div class="cg-user-check" id="cgchk-${p.id}">${sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
+            <div class="cg-avatar" style="background:${p.color};">${initials}</div>
+            <div style="flex:1;min-width:0;"><div class="cg-user-name">${p.name}</div><div class="cg-user-sub">${p.sub||'—'}</div></div>
+            <div style="font-family:monospace;font-size:12px;color:#9ca3af;white-space:nowrap;">${uname}</div>
+        </div>`;
+    }).join('');
+}
+window.cgToggle=function(id){ if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); const row=document.getElementById('cgrow-'+id),chk=document.getElementById('cgchk-'+id),sel=selectedIds.has(id); row.classList.toggle('selected',sel); chk.innerHTML=sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''; updateBar(); };
+window.cgSelectAll=function(){ getVisiblePeople().forEach(function(p){ selectedIds.add(p.id); }); renderList(getVisiblePeople()); updateBar(); };
+window.cgDeselectAll=function(){ selectedIds.clear(); document.getElementById('cg-user-list').querySelectorAll('.cg-user-row').forEach(function(r){ r.classList.remove('selected'); r.querySelector('.cg-user-check').innerHTML=''; }); updateBar(); };
+function getVisiblePeople(){ if(!currentType) return []; const q=document.getElementById('cg-search').value.toLowerCase().trim(); return CG_PEOPLE[currentType].filter(function(p){ return !q||p.name.toLowerCase().includes(q); }); }
+window.cgSearch=function(q){ const filtered=getVisiblePeople(); const ul=document.getElementById('cg-user-list'); if(!filtered.length){ ul.innerHTML='<div style="padding:32px;text-align:center;color:#9ca3af;font-size:13px;">No results.</div>'; return; } ul.innerHTML=filtered.map(function(p){ const uname=makeUsername(p.name),initials=p.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase(),sel=selectedIds.has(p.id); return `<div class="cg-user-row${sel?' selected':''}" id="cgrow-${p.id}" onclick="cgToggle(${p.id})"><div class="cg-user-check" id="cgchk-${p.id}">${sel?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div><div class="cg-avatar" style="background:${p.color};">${initials}</div><div style="flex:1;min-width:0;"><div class="cg-user-name">${p.name}</div><div class="cg-user-sub">${p.sub||'—'}</div></div><div style="font-family:monospace;font-size:12px;color:#9ca3af;white-space:nowrap;">${uname}</div></div>`; }).join(''); };
+function updateBar(){ const n=selectedIds.size; document.getElementById('cg-selected-count').textContent=n; const btn=document.getElementById('cg-gen-btn'); btn.disabled=n===0; btn.style.opacity=n===0?'0.5':'1'; }
+window.cgGenerate=function(){
+    if(!currentType||!selectedIds.size) return;
+    const btn=document.getElementById('cg-gen-btn'); btn.disabled=true; btn.innerHTML='⏳ Generating…';
+    const people=CG_PEOPLE[currentType].filter(function(p){ return selectedIds.has(p.id); });
+    generatedList=people.map(function(p){ const uname=makeUsername(p.name); return Object.assign({},p,{username:uname,password:uname+'123'}); });
+    const csrf=document.querySelector('[name=csrfmiddlewaretoken]');
+    fetch('/credentials/generate/',{ method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf?csrf.value:''}, body:JSON.stringify({credentials:generatedList.map(function(c){ return {id:c.id,type:c.type,username:c.username,password:c.password}; })}) }).catch(function(){}).finally(function(){ btn.innerHTML='🔑 Generate Credentials'; btn.disabled=false; showResults(); });
+};
+function showResults(){
+    document.getElementById('cg-results-panel').style.display='block';
+    document.getElementById('cg-result-summary').textContent=generatedList.length+' '+TYPE_META[currentType].label.toLowerCase()+' — ready to share';
+    const tbody=document.getElementById('cg-result-tbody');
+    tbody.innerHTML=generatedList.map(function(c,i){ const initials=c.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase(); return `<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:12px 20px;font-size:12px;color:#9ca3af;font-weight:600;">${String(i+1).padStart(2,'0')}</td><td style="padding:12px 16px;"><div style="display:flex;align-items:center;gap:10px;"><div class="cg-avatar" style="background:${c.color};width:32px;height:32px;font-size:11px;flex-shrink:0;">${initials}</div><div style="font-size:13.5px;font-weight:700;white-space:nowrap;">${c.name}</div></div></td><td style="padding:12px 16px;font-size:12px;color:#6b7280;white-space:nowrap;">${c.sub||'—'}</td><td style="padding:12px 16px;white-space:nowrap;"><div class="cg-cred-box"><code class="cg-cred-code" style="background:#f0fdfa;color:#0d9488;border:1px solid #99f6e4;">${c.username}</code><button class="cg-copy-mini" onclick="cgCopyOne('${c.username}',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></td><td style="padding:12px 16px;white-space:nowrap;"><div class="cg-cred-box"><code class="cg-cred-code" style="background:#f9fafb;color:#374151;border:1px solid #e5e7eb;">${c.password}</code><button class="cg-copy-mini" onclick="cgCopyOne('${c.password}',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></td></tr>`; }).join('');
+    document.getElementById('cg-results-panel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.cgCopyOne=function(text,btn){ navigator.clipboard.writeText(text).then(function(){ const orig=btn.innerHTML; btn.innerHTML='✓'; setTimeout(function(){ btn.innerHTML=orig; },1200); }); };
+window.cgCopyAll=function(){ let text='DPS RAVI CAMPUS — CREDENTIALS\n'+'═'.repeat(40)+'\n\n'; generatedList.forEach(function(c,i){ text+=`[${i+1}] ${c.name} (${c.type})\n    Username : ${c.username}\n    Password : ${c.password}\n\n`; }); navigator.clipboard.writeText(text).then(function(){ const btn=document.getElementById('cg-copyall-btn'); const orig=btn.innerHTML; btn.innerHTML='✓ Copied!'; setTimeout(function(){ btn.innerHTML=orig; },2000); }); };
+window.cgDownloadPDF=function(){ if(!window.jspdf) return; const {jsPDF}=window.jspdf; const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'}); const pw=doc.internal.pageSize.getWidth(); let y=0; doc.setFillColor(13,148,136); doc.rect(0,0,pw,32,'F'); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('DPS Ravi Campus — Login Credentials',pw/2,13,{align:'center'}); doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text('Generated: '+new Date().toLocaleString()+'  |  Total: '+generatedList.length,pw/2,22,{align:'center'}); y=42; doc.setFillColor(249,250,251); doc.rect(10,y-5,pw-20,9,'F'); doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text('#',14,y); doc.text('Name',28,y); doc.text('Info',100,y); doc.text('Username',130,y); doc.text('Password',165,y); y+=8; generatedList.forEach(function(c,i){ if(y>268){ doc.addPage(); y=20; } if(i%2===0){ doc.setFillColor(252,252,252); doc.rect(10,y-4,pw-20,14,'F'); } doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150,150,150); doc.text(String(i+1).padStart(2,'0'),13,y+3); doc.setTextColor(26,29,35); doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text(c.name,28,y+3); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,100,100); doc.text(c.sub||'—',100,y+3); doc.setFont('courier','bold'); doc.setTextColor(13,148,136); doc.text(c.username,130,y+3); doc.setTextColor(55,65,81); doc.text(c.password,165,y+3); doc.setDrawColor(235,235,235); doc.line(10,y+10,pw-10,y+10); y+=14; }); doc.save('credentials_'+(currentType||'all')+'_'+new Date().toISOString().slice(0,10)+'.pdf'); };
+window.cgReset=function(){ currentType=null; selectedIds.clear(); generatedList=[]; ['students','teachers','parents'].forEach(function(t){ document.getElementById('cgcard-'+t).classList.remove('active'); }); document.getElementById('cg-user-panel').classList.remove('open'); document.getElementById('cg-results-panel').style.display='none'; updateBar(); };
+})();
+
+// Attendance date filter functions
+function filterAttendanceByDate(classId) {
+    const date = document.getElementById('att-date-' + classId).value;
+    const rows = document.querySelectorAll('.att-row-' + classId);
+    let visible = 0;
+    rows.forEach(function(row) {
+        const rowDate = row.querySelector('td:nth-child(3)').textContent.trim();
+        const match = !date || rowDate === date;
+        row.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    const empty = document.getElementById('att-empty-' + classId);
+    if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+    // Reset status buttons visually
+    document.querySelectorAll('#att-' + classId + ' .att-filter-btn').forEach(function(btn) {
+        btn.style.background = '#fff'; btn.style.color = 'var(--text-secondary)';
+    });
+}
+function clearAttendanceDate(classId) {
+    const input = document.getElementById('att-date-' + classId);
+    if (input) input.value = '';
+    document.querySelectorAll('.att-row-' + classId).forEach(function(row) { row.style.display = ''; });
+    const empty = document.getElementById('att-empty-' + classId);
+    if (empty) empty.style.display = 'none';
+}
+</script>
+
+<!-- Drawer -->
+<div id="drawer-overlay" onclick="closeDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:400;backdrop-filter:blur(2px);"></div>
+<div id="drawer" style="position:fixed;top:50%;left:50%;width:600px;max-width:95vw;max-height:90vh;background:#fff;z-index:500;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translate(-50%,-45%) scale(0.95);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);">
+    <div style="padding:18px 22px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#0f1623;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#0d9488;"></div>
+            <h3 id="drawer-title" style="font-size:15px;font-weight:700;color:#fff;margin:0;">Form</h3>
+        </div>
+        <button onclick="closeDrawer()" style="background:rgba(255,255,255,0.1);border:none;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <div id="drawer-body" style="flex:1;overflow-y:auto;padding:24px 22px;">
+        <div id="drawer-loading" style="display:flex;align-items:center;justify-content:center;height:200px;flex-direction:column;gap:12px;">
+            <div style="width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#0d9488;border-radius:50%;animation:spin 0.7s linear infinite;"></div>
+            <span style="font-size:13px;color:#9ca3af;">Loading…</span>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+#drawer-body form { display:flex;flex-direction:column;gap:0; }
+#drawer-body .form-group, #drawer-body p { margin-bottom:16px; }
+#drawer-body label { display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;margin-bottom:6px; }
+#drawer-body input[type=text],#drawer-body input[type=email],#drawer-body input[type=password],#drawer-body input[type=number],#drawer-body input[type=date],#drawer-body input[type=tel],#drawer-body select,#drawer-body textarea { width:100%;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:13.5px;font-family:inherit;color:#1a1d23;outline:none;background:#fff;transition:border-color 0.15s;box-sizing:border-box; }
+#drawer-body input:focus,#drawer-body select:focus,#drawer-body textarea:focus { border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,0.1); }
+#drawer-body textarea { min-height:100px;resize:vertical; }
+#drawer-body input[type=submit],#drawer-body button[type=submit] { margin-top:8px;padding:10px 20px;background:#0d9488;color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.15s;width:100%; }
+#drawer-body input[type=submit]:hover,#drawer-body button[type=submit]:hover { background:#0f766e; }
+@media (max-width:480px) { #drawer { width:100vw!important;border-radius:16px 16px 0 0!important;top:auto!important;bottom:0!important;left:0!important;transform:none!important; } }
+</style>
+
+</body>
+</html>

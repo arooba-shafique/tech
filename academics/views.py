@@ -1,0 +1,1385 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, JsonResponse
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import send_mail
+from django.contrib.auth import get_user_model
+from .models import (
+    HomeTask,  # <--- Make sure this is here
+    StudentProfile,
+    TimetableSlot,
+    TeacherProfile,
+    ParentProfile,
+    Class,
+    Subject,
+    TeacherSubjectAssignment,
+    Exam,
+    Result,
+    Attendance
+)
+
+from .forms import (
+    StudentProfileForm,
+    TeacherProfileForm,
+    ParentProfileForm,
+    ClassForm,
+    SubjectForm,
+    TeacherSubjectAssignmentForm
+)
+
+
+def get_user_school(user):
+    return getattr(user, 'school', None)
+
+
+# ─────────────────────────────────────────────
+# ADMIN DASHBOARD
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def admin_dashboard(request):
+    role = getattr(request.user, 'role', None)
+
+    if not (request.user.is_superuser or role in ("admin", "admin_manager")):
+        return HttpResponse("Unauthorized Access", status=403)
+
+    school = get_user_school(request.user)
+    today = timezone.now().date()
+
+    school_filter = {}
+    if not request.user.is_superuser and school:
+        school_filter = {'school': school}
+
+    students_qs = StudentProfile.objects.filter(**school_filter)
+    teachers_qs = TeacherProfile.objects.filter(**school_filter)
+    parents_qs = ParentProfile.objects.filter(**school_filter)
+    classes_qs = Class.objects.filter(**school_filter)
+    subjects_qs = Subject.objects.filter(**school_filter)
+
+    all_results = Result.objects.filter(
+        student__in=students_qs
+    ).select_related(
+        'student__student_class', 'exam'
+    ).order_by('student__student_class__name')
+
+    classes = classes_qs
+
+    for cls in classes:
+        cls.total_students = students_qs.filter(student_class=cls).count()
+        cls_results = [r for r in all_results if r.student.student_class_id == cls.id]
+        cls.pass_count = sum(1 for r in cls_results if getattr(r, "is_passing", False))
+        cls.fail_count = sum(1 for r in cls_results if not getattr(r, "is_passing", False))
+
+    assignments_qs = TeacherSubjectAssignment.objects.filter(
+        assigned_class__in=classes_qs
+    ) if not request.user.is_superuser else TeacherSubjectAssignment.objects.all()
+
+    User = get_user_model()
+    context = {
+        'students':      students_qs,
+        'teachers':      teachers_qs,
+        'parents':       parents_qs,
+        'classes':       classes,
+        'subjects':      subjects_qs,
+        'assignments':   assignments_qs,
+        'exams':         Exam.objects.filter(assigned_class__in=classes_qs) if not request.user.is_superuser else Exam.objects.all(),
+        'results':       all_results,
+        'attendance':    Attendance.objects.filter(student__in=students_qs).order_by('-date')[:50] if not request.user.is_superuser else Attendance.objects.order_by('-date')[:50],
+        'present_today': Attendance.objects.filter(student__in=students_qs, date=today, status='present').values('student').distinct().count() if not request.user.is_superuser else Attendance.objects.filter(date=today, status='present').values('student').distinct().count(),
+        'absent_today':  Attendance.objects.filter(student__in=students_qs, date=today, status='absent').values('student').distinct().count() if not request.user.is_superuser else Attendance.objects.filter(date=today, status='absent').values('student').distinct().count(),
+        'leave_today':   Attendance.objects.filter(student__in=students_qs, date=today, status='leave').values('student').distinct().count() if not request.user.is_superuser else Attendance.objects.filter(date=today, status='leave').values('student').distinct().count(),
+        'user_role':     role,
+        'admin_users':   User.objects.filter(role__in=['admin', 'admin_manager'], school=school).order_by('role', 'username') if not request.user.is_superuser else User.objects.filter(role__in=['admin', 'admin_manager']).order_by('role', 'username'),
+    }
+
+    template = 'admin_manager_dashboard.html' if role == 'admin_manager' else 'admin_dashboard.html'
+    return render(request, template, context)
+
+
+# ─────────────────────────────────────────────
+# SECTION TAG MAP
+# ─────────────────────────────────────────────
+
+SECTION_TAGS = {
+    'Student':            'students',
+    'Teacher':            'teachers',
+    'Parent':             'parents',
+    'Class':              'classes',
+    'Subject':            'subjects',
+    'Teacher Assignment': 'assignments',
+    'Assignment':         'assignments',
+}
+
+
+# ─────────────────────────────────────────────
+# GENERIC ADD / EDIT / DELETE
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def add_model_entry(request, form_class, model_name, template_name):
+    if request.method == 'POST':
+        form = form_class(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            tag = SECTION_TAGS.get(model_name, 'dashboard')
+            messages.success(request, f'{model_name} added successfully.', extra_tags=tag)
+            return redirect('admin_console')
+    else:
+        form = form_class()
+    return render(request, template_name, {'form': form, 'model_name': model_name})
+
+
+@login_required(login_url='admin_login')
+def edit_model_entry(request, instance, form_class, model_name, template_name):
+    if request.method == 'POST':
+        form = form_class(request.POST, request.FILES, instance=instance)
+        if form.is_valid():
+            form.save()
+            tag = SECTION_TAGS.get(model_name, 'dashboard')
+            messages.success(request, f'{model_name} updated successfully.', extra_tags=tag)
+            return redirect('admin_console')
+    else:
+        form = form_class(instance=instance)
+    return render(request, template_name, {'form': form, 'model_name': model_name, 'edit': True})
+
+
+@login_required(login_url='admin_login')
+def delete_model_entry(request, instance, model_name):
+    if request.method == 'POST':
+        instance.delete()
+        tag = SECTION_TAGS.get(model_name, 'dashboard')
+        messages.success(request, f'{model_name} deleted successfully.', extra_tags=tag)
+    return redirect('admin_console')
+
+
+from django.contrib.auth import get_user_model
+
+
+def _save_email_to_user(profile, email):
+    """
+    If the profile already has a linked User, update their email.
+    If not, do nothing — credentials are generated separately by
+    the admin-manager's generate_credentials flow.
+    """
+    if profile.user and email:
+        profile.user.email = email
+        profile.user.save(update_fields=['email'])
+
+
+# ─────────────────────────────────────────────
+# STUDENT
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def edit_student(request, pk):
+    qs = StudentProfile.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    student = get_object_or_404(qs, pk=pk)
+    school = get_user_school(request.user)
+    if request.method == 'POST':
+        form = StudentProfileForm(request.POST, request.FILES, instance=student, school=school)
+        if form.is_valid():
+            form.save()
+            # Update email on linked user
+            if student.user and form.cleaned_data.get('email'):
+                student.user.email = form.cleaned_data['email']
+                student.user.save(update_fields=['email'])
+            messages.success(request, 'Student updated successfully.', extra_tags='students')
+            return redirect('admin_console')
+    else:
+        # Pre-fill email from model field first, fallback to linked user
+        initial_email = student.email or (student.user.email if student.user else '')
+        form = StudentProfileForm(instance=student, initial={'email': initial_email}, school=get_user_school(request.user))
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Student', 'edit': True})
+
+
+@login_required(login_url='admin_login')
+def delete_student(request, pk):
+    qs = StudentProfile.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    student = get_object_or_404(qs, pk=pk)
+    return delete_model_entry(request, student, 'Student')
+
+
+# ─────────────────────────────────────────────
+# TEACHER
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def add_teacher(request):
+    school = get_user_school(request.user)
+    if request.method == 'POST':
+        form = TeacherProfileForm(request.POST, request.FILES, school=school)
+        if form.is_valid():
+            teacher = form.save(commit=False)
+            teacher.school = get_user_school(request.user)
+            
+            # Create a User account for this teacher
+            User = get_user_model()
+            email = form.cleaned_data.get('email', '')
+            # Generate username from full name
+            base_username = form.cleaned_data['full_name'].replace(' ', '').lower()
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            import secrets
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=f"{username}123" 
+            )
+            user.role = 'teacher'
+            user.save()
+
+            teacher.user = user
+            teacher.save()
+            form.save_m2m()  # save ManyToMany fields like subjects
+
+            messages.success(request, 'Teacher added successfully.', extra_tags='teachers')
+            return redirect('admin_console')
+    else:
+        form = TeacherProfileForm(school=school)
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Teacher'})
+
+
+@login_required(login_url='admin_login')
+def edit_teacher(request, pk):
+    qs = TeacherProfile.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    teacher = get_object_or_404(qs, pk=pk)
+    school = get_user_school(request.user)
+    if request.method == 'POST':
+        form = TeacherProfileForm(request.POST, request.FILES, instance=teacher, school=school)
+        if form.is_valid():
+            form.save()
+            # Update email on the linked user
+            if teacher.user and form.cleaned_data.get('email'):
+                teacher.user.email = form.cleaned_data['email']
+                teacher.user.save()
+            messages.success(request, 'Teacher updated successfully.', extra_tags='teachers')
+            return redirect('admin_console')
+    else:
+        form = TeacherProfileForm(
+            instance=teacher,
+            initial={'email': teacher.user.email if teacher.user else ''},
+            school=get_user_school(request.user)
+        )
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Teacher', 'edit': True})
+
+
+@login_required(login_url='admin_login')
+def delete_teacher(request, pk):
+    qs = TeacherProfile.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    teacher = get_object_or_404(qs, pk=pk)
+    return delete_model_entry(request, teacher, 'Teacher')
+
+
+# ─────────────────────────────────────────────
+# PARENT
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def add_student(request):
+    school = get_user_school(request.user)
+    if request.method == 'POST':
+        form = StudentProfileForm(request.POST, request.FILES, school=school)
+        if form.is_valid():
+            student = form.save(commit=False)
+            student.school = get_user_school(request.user)
+            email = form.cleaned_data.get('email', '')
+            
+            User = get_user_model()
+            base_username = form.cleaned_data['full_name'].replace(' ', '').lower()
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=f"{username}123"
+            )
+            user.role = 'student'
+            user.save()
+
+            student.user = user
+            student.save()
+            form.save_m2m()
+
+            messages.success(request, 'Student added successfully.', extra_tags='students')
+            return redirect('admin_console')
+    else:
+        form = StudentProfileForm(school=school)
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Student'})
+
+
+@login_required(login_url='admin_login')
+def add_parent(request):
+    school = get_user_school(request.user)
+    if request.method == 'POST':
+        form = ParentProfileForm(request.POST, request.FILES, school=school)
+        if form.is_valid():
+            parent = form.save(commit=False)
+            parent.school = get_user_school(request.user)
+            email = form.cleaned_data.get('email', '')
+
+            User = get_user_model()
+
+            base_username = form.cleaned_data['full_name'].replace(' ', '').lower()
+            username = base_username
+            counter = 1
+
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            password = f"{username}123"
+
+            # ✅ Create User account (this will appear in admin)
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password
+            )
+
+            # ✅ Assign role
+            user.role = 'parent'
+            user.save()
+
+            # ✅ Link profile to user
+            parent.user = user
+            parent.save()
+            form.save_m2m() 
+
+            messages.success(request, 'Parent added successfully.', extra_tags='parents')
+
+            return redirect('admin_console')
+
+    else:
+        form = ParentProfileForm(school=school)
+
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Parent'})
+
+
+
+@login_required(login_url='admin_login')
+def edit_parent(request, pk):
+    qs = ParentProfile.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    parent = get_object_or_404(qs, pk=pk)
+    school = get_user_school(request.user)
+    if request.method == 'POST':
+        form = ParentProfileForm(request.POST, request.FILES, instance=parent, school=school)
+        if form.is_valid():
+            form.save()
+            # Update email on linked user
+            if parent.user and form.cleaned_data.get('email'):
+                parent.user.email = form.cleaned_data['email']
+                parent.user.save(update_fields=['email'])
+            messages.success(request, 'Parent updated successfully.', extra_tags='parents')
+            return redirect('admin_console')
+    else:
+        # Pre-fill email from model field first, fallback to linked user
+        initial_email = parent.email or (parent.user.email if parent.user else '')
+        form = ParentProfileForm(instance=parent, initial={'email': initial_email}, school=get_user_school(request.user))
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Parent', 'edit': True})
+
+@login_required(login_url='admin_login')
+def delete_parent(request, pk):
+    qs = ParentProfile.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    parent = get_object_or_404(qs, pk=pk)
+    return delete_model_entry(request, parent, 'Parent')
+
+
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+
+def parent_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            try:
+                parent = ParentProfile.objects.get(user=user)  # now works after migration
+                login(request, user)
+                return redirect('parent_dashboard')
+            except ParentProfile.DoesNotExist:
+                messages.error(request, 'No parent profile linked to this account.')
+        else:
+            messages.error(request, 'Invalid username or password.')
+    return render(request, 'parent_login.html')
+
+@login_required
+def parent_dashboard(request):
+    parent = get_object_or_404(ParentProfile, user=request.user)
+    students = list(parent.students.all().select_related('student_class'))
+
+    # Attach attendance summary directly onto each student object
+    for student in students:
+        records = Attendance.objects.filter(student=student)
+        present = records.filter(status='present').count()
+        absent  = records.filter(status='absent').count()
+        leave   = records.filter(status='leave').count()
+        total   = present + absent + leave
+        student.att_present    = present
+        student.att_absent     = absent
+        student.att_leave      = leave
+        student.att_total      = total
+        student.att_percentage = round((present / total) * 100) if total else 0
+
+        # Attach timetable directly onto student
+        DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+        slots = TimetableSlot.objects.filter(
+            assigned_class=student.student_class
+        ).select_related('subject','teacher').order_by('day','period_number')
+        timetable = {}
+        for slot in slots:
+            timetable.setdefault(slot.day, []).append(slot)
+        student.timetable = {
+            day: timetable[day]
+            for day in DAY_ORDER
+            if day in timetable
+        }
+
+    all_pcts = [s.att_percentage for s in students]
+    overall_attendance_pct = round(sum(all_pcts) / len(all_pcts)) if all_pcts else 0
+
+    child_class_ids = [s.student_class_id for s in students]
+    all_tasks        = HomeTask.objects.filter(assigned_class__in=child_class_ids).select_related('assigned_class','subject').order_by('-assigned_date')
+    recent_tasks     = all_tasks[:10]
+    total_pending_tasks = all_tasks.filter(due_date__gte=timezone.now().date()).count()
+
+    all_results    = Result.objects.filter(student__in=students).select_related('student','exam','exam__subject','student__student_class').order_by('-exam__exam_date')
+    recent_results = all_results[:10]
+    total_exams    = all_results.values('exam').distinct().count()
+
+    DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+
+    context = {
+        'parent':                 parent,
+        'students':               students,
+        'overall_attendance_pct': overall_attendance_pct,
+        'all_tasks':              all_tasks,
+        'recent_tasks':           recent_tasks,
+        'total_pending_tasks':    total_pending_tasks,
+        'all_results':            all_results,
+        'recent_results':         recent_results,
+        'total_exams':            total_exams,
+        'all_subjects':           Subject.objects.all(),
+        'timetable_days':         DAY_ORDER,
+    }
+    return render(request, 'parent_dashboard.html', context)
+
+
+# ─────────────────────────────────────────────
+# CLASS
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def add_class(request):
+    if request.method == 'POST':
+        form = ClassForm(request.POST)
+        if form.is_valid():
+            cls = form.save(commit=False)
+            cls.school = get_user_school(request.user)
+            cls.save()
+            messages.success(request, 'Class added successfully.', extra_tags='classes')
+            return redirect('admin_console')
+    else:
+        form = ClassForm()
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Class'})
+
+@login_required(login_url='admin_login')
+def edit_class(request, pk):
+    qs = Class.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    cls = get_object_or_404(qs, pk=pk)
+    return edit_model_entry(request, cls, ClassForm, 'Class', 'add_entry.html')
+
+@login_required(login_url='admin_login')
+def delete_class(request, pk):
+    qs = Class.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    cls = get_object_or_404(qs, pk=pk)
+    return delete_model_entry(request, cls, 'Class')
+
+
+# ─────────────────────────────────────────────
+# SUBJECT
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def add_subject(request):
+    if request.method == 'POST':
+        form = SubjectForm(request.POST)
+        if form.is_valid():
+            subject = form.save(commit=False)
+            subject.school = get_user_school(request.user)
+            subject.save()
+            messages.success(request, 'Subject added successfully.', extra_tags='subjects')
+            return redirect('admin_console')
+    else:
+        form = SubjectForm()
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Subject'})
+
+@login_required(login_url='admin_login')
+def edit_subject(request, pk):
+    qs = Subject.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    subject = get_object_or_404(qs, pk=pk)
+    return edit_model_entry(request, subject, SubjectForm, 'Subject', 'add_entry.html')
+
+@login_required(login_url='admin_login')
+def delete_subject(request, pk):
+    qs = Subject.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(school=school)
+    subject = get_object_or_404(qs, pk=pk)
+    return delete_model_entry(request, subject, 'Subject')
+
+
+# ─────────────────────────────────────────────
+# ASSIGNMENT
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def add_assignment(request):
+    if request.method == 'POST':
+        form = TeacherSubjectAssignmentForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Assignment added successfully.', extra_tags='assignments')
+            return redirect('admin_console')
+    else:
+        qs = Class.objects.all()
+        school = get_user_school(request.user)
+        if not request.user.is_superuser and school:
+            qs = qs.filter(school=school)
+        form = TeacherSubjectAssignmentForm()
+        form.fields['assigned_class'].queryset = qs
+        if not request.user.is_superuser and school:
+            form.fields['teacher'].queryset = TeacherProfile.objects.filter(school=school)
+            form.fields['subject'].queryset = Subject.objects.filter(school=school)
+    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Teacher Assignment'})
+
+@login_required(login_url='admin_login')
+def edit_assignment(request, pk):
+    qs = TeacherSubjectAssignment.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(assigned_class__school=school)
+    assignment = get_object_or_404(qs, pk=pk)
+    return edit_model_entry(request, assignment, TeacherSubjectAssignmentForm, 'Teacher Assignment', 'add_entry.html')
+
+@login_required(login_url='admin_login')
+def delete_assignment(request, pk):
+    qs = TeacherSubjectAssignment.objects.all()
+    school = get_user_school(request.user)
+    if not request.user.is_superuser and school:
+        qs = qs.filter(assigned_class__school=school)
+    assignment = get_object_or_404(qs, pk=pk)
+    return delete_model_entry(request, assignment, 'Assignment')
+
+
+# ─────────────────────────────────────────────
+# UTILITY
+# ─────────────────────────────────────────────
+
+def subjects_by_class(request, class_id):
+    """Returns subjects assigned to a given class via TeacherSubjectAssignment."""
+    subjects = Subject.objects.filter(
+        assignments__assigned_class_id=class_id
+    ).distinct().values('id', 'name', 'code')
+    return JsonResponse({'subjects': list(subjects)})
+
+# ─────────────────────────────────────────────
+# TEACHER DASHBOARD
+# ─────────────────────────────────────────────
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+
+def get_teacher(request):
+    if not request.user.is_authenticated:
+        return None
+    
+    from .models import TeacherProfile
+    
+    # 1. Try to find the profile directly linked to this user
+    teacher = TeacherProfile.objects.filter(user=request.user).first()
+    if teacher:
+        return teacher
+
+    # 2. Safety check for Admins (Superusers)
+    # If you are logged in as an admin but haven't linked 'arooba' to a profile yet,
+    # this will let you see the dashboard using the first teacher profile available.
+    if request.user.is_superuser:
+        return TeacherProfile.objects.first()
+
+    return None
+    
+from django.shortcuts import redirect
+
+@login_required(login_url='teacher_login')
+
+def teacher_dashboard(request):
+    # --- DEBUG SECTION ---
+    print(f"DEBUG: User is -> {request.user}")
+    print(f"DEBUG: Is authenticated? -> {request.user.is_authenticated}")
+    # ---------------------
+
+    teacher = get_teacher(request)
+    if not teacher:
+        from django.contrib.auth import logout
+        logout(request)
+        return redirect('teacher_login')
+
+    today = timezone.now().date()
+
+    # ── YOUR EXISTING DASHBOARD LOGIC ──
+    assignment_qs = TeacherSubjectAssignment.objects.filter(
+        teacher=teacher
+    ).select_related('assigned_class', 'subject')
+    assigned_class_ids = assignment_qs.values_list('assigned_class_id', flat=True).distinct()
+    assigned_classes = Class.objects.filter(id__in=assigned_class_ids)
+
+    for cls in assigned_classes:
+        cls_students = StudentProfile.objects.filter(student_class=cls)
+        cls.total_students = cls_students.count()
+        today_att = Attendance.objects.filter(student__in=cls_students, date=today, marked_by=teacher)
+        cls.present_today = today_att.filter(status='present').count()
+        cls.absent_today  = today_att.filter(status='absent').count()
+        cls.leave_today   = today_att.filter(status='leave').count()
+
+    students = StudentProfile.objects.filter(student_class__in=assigned_classes).order_by('roll_number')
+    my_subjects = Subject.objects.filter(assignments__teacher=teacher).distinct()
+    my_hometasks = HomeTask.objects.filter(assigned_by=teacher).select_related('assigned_class', 'subject')
+    my_exams = Exam.objects.filter(created_by=teacher).select_related('subject', 'assigned_class')
+    my_uploaded_results = Result.objects.filter(uploaded_by=teacher).select_related('student', 'exam')
+    my_attendance_records = Attendance.objects.filter(marked_by=teacher).select_related('student__student_class', 'subject')[:200]
+    results = Result.objects.filter(exam__in=my_exams).select_related('student', 'exam')
+
+    all_att_today = Attendance.objects.filter(student__in=students, date=today, marked_by=teacher)
+    present_today = all_att_today.filter(status='present').count()
+    absent_today  = all_att_today.filter(status='absent').count()
+    leave_today   = all_att_today.filter(status='leave').count()
+
+    my_class = Class.objects.filter(class_teacher=teacher).first()
+
+    DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    slots = TimetableSlot.objects.filter(teacher=teacher).select_related('subject', 'assigned_class').order_by('day', 'period_number')
+
+    teacher_timetable = {}
+    for slot in slots:
+        teacher_timetable.setdefault(slot.day, []).append(slot)
+
+    teacher_timetable = {
+        day: teacher_timetable[day]
+        for day in DAY_ORDER
+        if day in teacher_timetable
+    }
+
+    context = {
+        'teacher': teacher,
+        'assigned_classes': assigned_classes,
+        'students': students,
+        'my_subjects': my_subjects,
+        'my_hometasks': my_hometasks,
+        'my_exams': my_exams,
+        'my_uploaded_results': my_uploaded_results,
+        'my_attendance_records': my_attendance_records,
+        'results': results,
+        'present_today': present_today,
+        'absent_today': absent_today,
+        'leave_today': leave_today,
+        'total_students': students.count(),
+        'today': today,
+        'teacher_timetable': teacher_timetable,
+        'timetable_days': list(teacher_timetable.keys()),
+        'upcoming_lectures': slots,
+        'my_class': my_class,
+    }
+
+    return render(request, 'teacher_dashboard.html', context)
+
+def teacher_mark_attendance(request):
+    teacher = get_teacher(request)
+    if request.method == 'POST':
+        class_id   = request.POST.get('class_id')
+        date_str   = request.POST.get('date_field') or request.POST.get('date')
+        subject_id = request.POST.get('subject_field') or request.POST.get('subject')
+
+        # ✅ Validate required fields
+        if not class_id or not subject_id:
+            messages.error(request, 'Please select a class and subject before saving.', extra_tags='attendance')
+            return redirect('/teacher_dashboard/?tab=attendance')
+
+        cls      = get_object_or_404(Class, id=class_id)
+        subject  = get_object_or_404(Subject, id=subject_id)
+        students = StudentProfile.objects.filter(student_class=cls)
+
+        for student in students:
+            status = request.POST.get(f'status_{student.id}', 'present')
+            Attendance.objects.update_or_create(
+                student=student,
+                subject=subject,
+                date=date_str,
+                defaults={
+                    'student_class': cls,
+                    'marked_by': teacher,
+                    'status': status,
+                }
+            )
+        messages.success(request, f'Attendance saved for {cls} ({students.count()} students).', extra_tags='attendance')
+        return redirect('/teacher_dashboard/?tab=attendance')
+
+    return redirect('teacher_dashboard')
+
+def teacher_add_hometask(request):
+    teacher = get_teacher(request)
+    if request.method == 'POST':
+        cls     = get_object_or_404(Class, id=request.POST.get('class_id'))
+        subject = get_object_or_404(Subject, id=request.POST.get('subject'))
+        HomeTask.objects.create(
+            title         = request.POST.get('title'),
+            description   = request.POST.get('description', ''),
+            assigned_class= cls,
+            subject       = subject,
+            assigned_by   = teacher,
+            assigned_date = request.POST.get('assigned_date'),
+            due_date      = request.POST.get('due_date'),
+            attachment    = request.FILES.get('attachment'),
+        )
+        messages.success(request, 'Task uploaded successfully.', extra_tags='hometasks')
+        return redirect('teacher_dashboard')
+    return redirect('teacher_dashboard')
+
+
+def teacher_edit_hometask(request, pk):
+    teacher = get_teacher(request)
+    task = get_object_or_404(HomeTask, id=pk, assigned_by=teacher)
+    if request.method == 'POST':
+        task.title       = request.POST.get('title', task.title)
+        task.description = request.POST.get('description', task.description)
+        task.due_date    = request.POST.get('due_date', task.due_date)
+        if request.FILES.get('attachment'):
+            task.attachment = request.FILES['attachment']
+        task.save()
+        messages.success(request, 'Task updated.', extra_tags='hometasks')
+        return redirect('teacher_dashboard')
+    return render(request, 'teacher_edit_hometask.html', {'task': task})
+
+
+def teacher_delete_hometask(request, pk):
+    teacher = get_teacher(request)
+    task = get_object_or_404(HomeTask, id=pk, assigned_by=teacher)
+    if request.method == 'POST':
+        task.delete()
+        messages.success(request, 'Task deleted.', extra_tags='hometasks')
+    return redirect('teacher_dashboard')
+
+
+def teacher_add_exam(request):
+    teacher = get_teacher(request)
+    if request.method == 'POST':
+        Exam.objects.create(
+            name              = request.POST['name'],
+            subject_id        = request.POST['subject'],
+            assigned_class_id = request.POST['assigned_class'],
+            created_by        = teacher,
+            exam_date         = request.POST['exam_date'],
+            total_marks       = request.POST.get('total_marks', 100),
+            passing_marks     = request.POST.get('passing_marks', 40),
+        )
+        messages.success(request, 'Exam created.', extra_tags='exams')
+        return redirect('/teacher_dashboard/?tab=exams-marks')
+
+        return redirect('teacher_dashboard')
+
+
+def teacher_edit_exam(request, pk):
+    teacher = get_teacher(request)
+    exam = get_object_or_404(Exam, id=pk, created_by=teacher)
+    if request.method == 'POST':
+        exam.name          = request.POST.get('name', exam.name)
+        exam.exam_date     = request.POST.get('exam_date', exam.exam_date)
+        exam.total_marks   = request.POST.get('total_marks', exam.total_marks)
+        exam.passing_marks = request.POST.get('passing_marks', exam.passing_marks)
+        exam.save()
+        messages.success(request, 'Exam updated.', extra_tags='exams')
+        return redirect('teacher_dashboard')
+    return render(request, 'teacher_edit_exam.html', {'exam': exam})
+
+
+def teacher_delete_exam(request, pk):
+    teacher = get_teacher(request)
+    exam = get_object_or_404(Exam, id=pk, created_by=teacher)
+    if request.method == 'POST':
+        exam.delete()
+        messages.success(request, 'Exam deleted.', extra_tags='exams')
+    return redirect('teacher_dashboard')
+
+
+def teacher_add_result(request):
+    teacher = get_teacher(request)
+    if request.method == 'POST':
+        exam_id = request.POST.get('exam')
+        if not exam_id:
+            messages.error(request, 'Please select an exam.', extra_tags='results')
+            return redirect('teacher_dashboard')
+
+        exam = get_object_or_404(Exam, id=exam_id)
+        students = StudentProfile.objects.filter(student_class=exam.assigned_class)
+
+        saved_count = 0
+        for student in students:
+            marks_value = request.POST.get(f'marks_{student.id}', '').strip()
+            if marks_value == '':
+                continue  # skip students with no marks entered
+            try:
+                marks = float(marks_value)
+            except ValueError:
+                continue
+            Result.objects.update_or_create(
+                student=student,
+                exam=exam,
+                defaults={
+                    'marks_obtained': marks,
+                    'uploaded_by': teacher,
+                }
+            )
+            saved_count += 1
+
+        messages.success(request, f'Marks saved for {saved_count} student(s).', extra_tags='results')
+        return redirect('/teacher_dashboard/?tab=exams-marks')
+
+    return redirect('teacher_dashboard')
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.admin.views.decorators import staff_member_required
+
+
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST, require_GET
+from django.contrib.auth.decorators import login_required
+
+
+# ─────────────────────────────────────────────
+# TIMETABLE — SAVE
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+@require_POST
+def save_timetable(request):
+    """
+    POST /timetable/save/
+    Body:
+    {
+        "class_id": 3,
+        "slots": [
+            {
+                "day":           "Monday",
+                "period_number": 1,
+                "start_time":    "08:00",
+                "end_time":      "08:45",
+                "duration":      45,
+                "subject_name":  "Mathematics",
+                "teacher_name":  "Mr. Ali"      // empty string = no teacher
+            },
+            ...
+        ]
+    }
+    Full-replace strategy: deletes ALL existing slots for the class, then inserts fresh ones.
+    The JS sends ALL days at once on "Save Timetable".
+    """
+    try:
+        data     = json.loads(request.body)
+        class_id = data.get('class_id')
+        slots    = data.get('slots', [])
+
+        if not class_id:
+            return JsonResponse({'status': 'error', 'message': 'class_id missing'}, status=400)
+
+        # Validate class exists
+        klass = get_object_or_404(Class, pk=class_id)
+
+        # Full replace for this class
+        TimetableSlot.objects.filter(assigned_class=klass).delete()
+
+        created = 0
+        skipped = 0
+        for s in slots:
+            subject_name = s.get('subject_name', '').strip()
+            teacher_name = s.get('teacher_name', '').strip()
+
+            if not subject_name:
+                skipped += 1
+                continue  # empty row — skip
+
+            subject = Subject.objects.filter(name=subject_name).first()
+            if not subject:
+                skipped += 1
+                continue  # subject not found — skip silently
+
+            teacher = None
+            if teacher_name:
+                teacher = TeacherProfile.objects.filter(full_name=teacher_name).first()
+
+            TimetableSlot.objects.create(
+                assigned_class=klass,
+                subject=subject,
+                teacher=teacher,
+                day=s.get('day'),
+                period_number=s.get('period_number'),
+                start_time=s.get('start_time'),
+                end_time=s.get('end_time'),
+                duration=s.get('duration', 45),
+            )
+            created += 1
+
+        return JsonResponse({
+            'status':  'ok',
+            'created': created,
+            'skipped': skipped,
+        })
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+# ─────────────────────────────────────────────
+# TIMETABLE — LOAD
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+@require_GET
+def load_timetable(request):
+    """
+    GET /timetable/load/?class_id=3
+    Returns all saved slots for the given class, grouped by day.
+    Response:
+    {
+        "status": "ok",
+        "class_id": 3,
+        "slots": [
+            {
+                "day":           "Monday",
+                "period_number": 1,
+                "start_time":    "08:00",
+                "end_time":      "08:45",
+                "duration":      45,
+                "subject_name":  "Mathematics",
+                "teacher_name":  "Mr. Ali"
+            },
+            ...
+        ]
+    }
+    """
+    class_id = request.GET.get('class_id')
+    if not class_id:
+        return JsonResponse({'status': 'error', 'message': 'class_id is required'}, status=400)
+
+    slots = TimetableSlot.objects.filter(
+        assigned_class_id=class_id
+    ).select_related('subject', 'teacher').order_by('day', 'period_number')
+
+    payload = []
+    for s in slots:
+        payload.append({
+            'day':           s.day,
+            'period_number': s.period_number,
+            'start_time':    s.start_time.strftime('%H:%M'),
+            'end_time':      s.end_time.strftime('%H:%M'),
+            'duration':      s.duration,
+            'subject_name':  s.subject.name,
+            'teacher_name':  s.teacher.full_name if s.teacher else '',
+        })
+
+    return JsonResponse({'status': 'ok', 'class_id': int(class_id), 'slots': payload})
+
+
+# ─────────────────────────────────────────────
+# TIMETABLE — CLEAR
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+@require_POST
+def clear_timetable(request):
+    """
+    POST /timetable/clear/
+    Body: { "class_id": 3 }   → clears all slots for that class
+          {}                   → clears ALL slots (admin only)
+    """
+    try:
+        data     = json.loads(request.body)
+        class_id = data.get('class_id')
+
+        qs = TimetableSlot.objects.all()
+        if class_id:
+            qs = qs.filter(assigned_class_id=class_id)
+
+        deleted, _ = qs.delete()
+        return JsonResponse({'status': 'ok', 'deleted': deleted})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+
+from django.contrib.auth import authenticate, login, logout
+
+from django.contrib.auth import logout, authenticate, login
+
+
+def teacher_login(request):
+    context = {}
+
+    msg = request.GET.get("msg")
+    if msg == "reset_sent":
+        context['success_msg'] = "Reset link sent to your email."
+    if msg == "reset_done":
+        context['success_msg'] = "Password changed successfully. You can now log in."
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            if getattr(user, 'role', None) == 'teacher' or hasattr(user, 'teacher_profile'):
+                login(request, user)
+                return redirect('teacher_dashboard')
+            else:
+                context['error_msg'] = 'This account is not registered as a teacher.'
+        else:
+            context['error_msg'] = 'Invalid username or password.'
+
+    return render(request, 'teacher_login.html', context)
+
+def teacher_password_reset(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        User = get_user_model()
+        users = User.objects.filter(email=email, role='teacher')
+
+        for user in users:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_link = request.build_absolute_uri(
+                f'/accounts/teacher/reset/{uid}/{token}/'
+            )
+            send_mail(
+                subject='Teacher Password Reset',
+                message=f'Click the link to reset your password: {reset_link}',
+                from_email='nafiaaziz.500@gmail.com',
+                recipient_list=[email],
+            )
+
+        return redirect('/teacher/login/?msg=reset_sent')
+
+    return render(request, 'password_reset.html')
+from django.contrib.auth import logout
+@require_POST
+def teacher_logout(request):
+    logout(request)
+    return redirect('teacher_login')
+
+# ─────────────────────────────────────────────
+# STUDENT PORTAL — Views
+# Add these to your views.py
+# ─────────────────────────────────────────────
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from django.utils import timezone
+
+
+def get_student(request):
+    """Return the StudentProfile linked to the logged-in user, or None."""
+    if not request.user.is_authenticated:
+        return None
+    return StudentProfile.objects.filter(user=request.user).first()
+
+
+# ─── LOGIN ───────────────────────────────────
+
+def student_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            # Accept only users whose StudentProfile exists
+            if StudentProfile.objects.filter(user=user).exists():
+                login(request, user)
+                return redirect('student_dashboard')
+            else:
+                messages.error(request, 'This account is not registered as a student.')
+        else:
+            messages.error(request, 'Invalid username or password.')
+    return render(request, 'student_login.html')
+
+
+# ─── LOGOUT ──────────────────────────────────
+
+from django.views.decorators.http import require_POST as _require_POST
+
+@_require_POST
+def student_logout(request):
+    logout(request)
+    return redirect('/')
+
+
+# ─── DASHBOARD ───────────────────────────────
+
+def student_dashboard(request):
+    student = get_student(request)
+    if not student:
+        logout(request)
+        return redirect('/')
+
+    today      = timezone.now().date()
+    today_name = today.strftime('%A')          # e.g. "Monday"
+
+    # ── Timetable for this student's class ──
+    DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+    all_slots = TimetableSlot.objects.filter(
+        assigned_class=student.student_class
+    ).select_related('subject', 'teacher').order_by('day', 'period_number')
+
+    student_timetable = {}
+    for slot in all_slots:
+        student_timetable.setdefault(slot.day, []).append(slot)
+
+    # Keep days in order
+    student_timetable = {
+        day: student_timetable[day]
+        for day in DAY_ORDER
+        if day in student_timetable
+    }
+
+    # Today's slots for the overview card
+    today_slots = student_timetable.get(today_name, [])
+
+    # ── Attendance ──
+    attendance_records = Attendance.objects.filter(
+        student=student
+    ).select_related('subject', 'marked_by').order_by('-date')
+
+    present_count = attendance_records.filter(status='present').count()
+    absent_count  = attendance_records.filter(status='absent').count()
+    leave_count   = attendance_records.filter(status='leave').count()
+    total_att     = present_count + absent_count + leave_count
+    attendance_pct = round((present_count / total_att * 100)) if total_att > 0 else 0
+
+    # ── Home Tasks for this student's class ──
+    hometasks = HomeTask.objects.filter(
+        assigned_class=student.student_class
+    ).select_related('subject', 'assigned_by').order_by('due_date')
+
+    recent_tasks = hometasks[:5]
+
+    context = {
+        'student':           student,
+        # timetable
+        'student_timetable': student_timetable,
+        'timetable_days':    list(student_timetable.keys()),
+        'today_slots':       today_slots,
+        'timetable_periods': all_slots.count(),
+        # attendance
+        'attendance_records': attendance_records,
+        'present_count':     present_count,
+        'absent_count':      absent_count,
+        'leave_count':       leave_count,
+        'attendance_pct':    attendance_pct,
+        # tasks
+        'hometasks':         hometasks,
+        'recent_tasks':      recent_tasks,
+        'total_tasks':       hometasks.count(),
+        # misc
+        'today':             today,
+    }
+    return render(request, 'student_dashboard.html', context)
+
+
+
+def credentials_page(request):
+    role = request.GET.get("role")
+    school = get_user_school(request.user)
+    school_filter = {}
+    if not request.user.is_superuser and school:
+        school_filter = {'school': school}
+
+    users = []
+    if role == "students":
+        users = StudentProfile.objects.filter(**school_filter)
+    elif role == "teachers":
+        users = TeacherProfile.objects.filter(**school_filter)
+    elif role == "parents":
+        users = ParentProfile.objects.filter(**school_filter)
+
+    return render(request, "credentials.html", {
+        "users": users,
+        "role": role
+    })
+
+from accounts.models import User
+from django.shortcuts import redirect
+from django.contrib import messages
+
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from accounts.models import User
+from academics.models import StudentProfile, TeacherProfile, ParentProfile
+
+def generate_selected_credentials(request):
+    if request.method == "POST":
+        ids = request.POST.getlist("users")
+        credentials = []
+        school = get_user_school(request.user)
+
+        for uid in ids:
+            school_filter = {}
+            if not request.user.is_superuser and school:
+                school_filter = {'school': school}
+            student = StudentProfile.objects.filter(id=uid, **school_filter).first()
+
+            if student and not student.user:
+                username = student.full_name.replace(" ", "").lower()
+                password = f"{username}123"
+
+                user = User.objects.create_user(
+                    username=username,
+                    password=password
+                )
+
+                student.user = user
+                student.save()
+
+                credentials.append({
+                    "name": student.full_name,
+                    "username": username,
+                    "password": password
+                })
+
+        role = request.GET.get("role", "students")
+        users = StudentProfile.objects.all() if role == "students" else []
+
+        return render(request, "credentials.html", {
+            "users": users,
+            "role": role,
+            "credentials": credentials
+        })
+    
+    # If GET request, redirect to credentials page instead of returning None
+    return redirect("credentials_page")
+
+
+# ─────────────────────────────────────────────
+# CREDENTIALS — replace ALL existing generate_credentials functions
+# with this single one at the BOTTOM of views.py
+# Also remove: credentials_page, generate_selected_credentials
+# ─────────────────────────────────────────────
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import Group
+
+# Use YOUR custom User model — not django.contrib.auth.models.User
+from accounts.models import User  
+
+
+@csrf_exempt
+def generate_credentials(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        credentials = data.get('credentials', [])
+        school = get_user_school(request.user)
+        results = []
+
+        for c in credentials:
+            username  = c['username']
+            password = f"{username}123" 
+            user_type = c['type']
+            user_id   = c['id']
+
+            school_filter = {}
+            if not request.user.is_superuser and school:
+                school_filter = {'school': school}
+
+            user, created = User.objects.get_or_create(username=username)
+            user.set_password(password)
+            user.save()
+
+            group_name = user_type.capitalize()
+            group, _   = Group.objects.get_or_create(name=group_name)
+            user.groups.set([group])
+
+            if user_type == 'student':
+                from academics.models import StudentProfile
+                StudentProfile.objects.filter(pk=user_id, **school_filter).update(user=user)
+
+            elif user_type == 'teacher':
+                from academics.models import TeacherProfile
+                TeacherProfile.objects.filter(pk=user_id, **school_filter).update(user=user)
+
+            elif user_type == 'parent':
+                from academics.models import ParentProfile
+                ParentProfile.objects.filter(pk=user_id, **school_filter).update(user=user)
+
+            results.append({
+                'username': username,
+                'type':     user_type,
+                'created':  created,
+            })
+
+        return JsonResponse({'status': 'ok', 'count': len(results), 'results': results})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@require_POST
+def parent_logout(request):
+    logout(request)
+    return redirect('/')

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Institution Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root { --navy: #0d2a4a; --gold: #e8b84b; --gold-light: #f5d07a; }
+    body { font-family: 'Outfit', sans-serif; }
+    h1, h2, h3, .brand { font-family: 'Cormorant Garamond', serif; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.75s cubic-bezier(.22,1,.36,1) both; }
+    .delay-1 { animation-delay: 0.12s; }
+    .delay-2 { animation-delay: 0.24s; }
+    .delay-3 { animation-delay: 0.36s; }
+    .delay-4 { animation-delay: 0.48s; }
+
+    .reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.65s ease, transform 0.65s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    nav { backdrop-filter: blur(14px); }
+
+    .portal-card { transition: transform 0.2s ease, box-shadow 0.2s ease; border: 1px solid rgba(255,255,255,0.15); }
+    .portal-card:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(0,0,0,0.18); }
+
+    .hero-bg {
+      background-color: #0d2a4a;
+      background-image: linear-gradient(rgba(232,184,75,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(232,184,75,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    .heading-underline { display: inline-block; position: relative; }
+    .heading-underline::after { content: ''; position: absolute; left: 0; bottom: -6px; width: 48px; height: 3px; background: var(--gold); border-radius: 2px; }
+
+    .stat-num { font-family: 'Cormorant Garamond', serif; }
+    .btn-primary { background: var(--gold); color: var(--navy); font-weight: 600; border-radius: 6px; transition: background 0.18s, transform 0.15s; }
+    .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
+    .btn-outline { border: 1.5px solid rgba(255,255,255,0.55); color: #fff; border-radius: 6px; font-weight: 500; transition: background 0.18s; }
+    .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+    .ornament { display: flex; align-items: center; gap: 14px; justify-content: center; color: #ccc; margin: 8px 0 24px; }
+    .ornament::before, .ornament::after { content: ''; flex: 1; max-width: 60px; height: 1px; background: #ddd; }
+
+    .icon-wrap { width: 48px; height: 48px; border-radius: 12px; background: rgba(13,42,74,0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    .prog-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .prog-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,0.08); }
+
+    footer a { transition: color 0.15s; }
+    footer a:hover { color: var(--gold) !important; }
+
+    .badge { display: inline-block; background: rgba(232,184,75,0.12); color: #0d2a4a; border: 1px solid rgba(232,184,75,0.4); border-radius: 20px; font-size: 11px; font-weight: 600; padding: 3px 10px; margin: 3px 2px; }
+
+    /* Mobile menu */
+    #mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13, 42, 74, 0.98);
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    #mobile-menu.open { display: flex; }
+
+    .mobile-nav-link {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      padding: 10px 28px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+      width: 100%;
+      text-align: center;
+    }
+    .mobile-nav-link:hover { color: #e8b84b; background: rgba(255,255,255,0.05); }
+
+    /* Nav link active highlight */
+    .nav-link {
+      position: relative;
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.18s;
+      text-decoration: none;
+      padding-bottom: 2px;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -3px; left: 0;
+      width: 0; height: 2px;
+      background: #e8b84b;
+      border-radius: 2px;
+      transition: width 0.22s ease;
+    }
+    .nav-link:hover { color: #fff; }
+    .nav-link:hover::after { width: 100%; }
+    .nav-link.active { color: #e8b84b; }
+    .nav-link.active::after { width: 100%; }
+
+    html { scroll-behavior: smooth; }
+
+    /* Nav scroll state — always fully opaque once past hero */
+    #main-nav {
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+    #main-nav.scrolled {
+      background: #0d2a4a !important;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.22);
+    }
+    /* Hamburger bars always white */
+    #hamburger .bar { background: #fff !important; }
+  </style>
+</head>
+<body class="bg-white text-gray-800">
+
+  <!-- ═══ DESKTOP NAV ═══ -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-[#0d2a4a]/94 text-white px-6 md:px-12 py-4 flex items-center justify-between shadow-lg" id="main-nav">
+    <a href="#hero" class="flex items-center gap-3">
+      <svg class="w-6 h-6 text-[#e8b84b]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M12 3L2 9l10 6 10-6-10-6z"/><path d="M2 17l10 6 10-6"/><path d="M2 13l10 6 10-6"/>
+      </svg>
+      <span class="brand text-[17px] font-bold tracking-wide">Institution Management System</span>
+    </a>
+
+    <!-- Desktop links -->
+    <div class="hidden md:flex items-center gap-7">
+      <a href="#hero"     class="nav-link" data-section="hero">Home</a>
+      <a href="#about"    class="nav-link" data-section="about">About</a>
+      <a href="#stats"    class="nav-link" data-section="stats">Stats</a>
+      <a href="#portals"  class="nav-link" data-section="portals">Portals</a>
+      <a href="#contact"  class="nav-link" data-section="contact">Contact</a>
+    </div>
+
+    <!-- Mobile hamburger -->
+    <button class="md:hidden flex flex-col gap-[5px] p-2 rounded-lg hover:bg-white/10 transition z-[300] relative" id="hamburger" aria-label="Open menu">
+      <span class="bar block w-5 h-[2px] bg-white rounded transition-all duration-300"></span>
+      <span class="bar block w-5 h-[2px] bg-white rounded transition-all duration-300"></span>
+      <span class="bar block w-5 h-[2px] bg-white rounded transition-all duration-300"></span>
+    </button>
+  </nav>
+
+  <!-- ═══ MOBILE MENU ═══ -->
+  <div id="mobile-menu">
+    <!-- Close button -->
+    <button id="close-menu" class="absolute top-5 right-6 text-white/70 hover:text-white p-2" style="position:fixed">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <!-- Logo in mobile menu -->
+    <div class="mb-8 text-center">
+      <div class="flex justify-center text-[#e8b84b] mb-2">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M12 3L2 9l10 6 10-6-10-6z"/><path d="M2 17l10 6 10-6"/><path d="M2 13l10 6 10-6"/>
+        </svg>
+      </div>
+      <p class="brand text-white text-sm font-semibold opacity-60">Institution Management System</p>
+    </div>
+    <a href="#hero"    class="mobile-nav-link" onclick="closeMobileMenu()">Home</a>
+    <a href="#about"   class="mobile-nav-link" onclick="closeMobileMenu()">About</a>
+    <a href="#stats"   class="mobile-nav-link" onclick="closeMobileMenu()">Stats</a>
+    <a href="#portals" class="mobile-nav-link" onclick="closeMobileMenu()">Portals</a>
+    <a href="#contact" class="mobile-nav-link" onclick="closeMobileMenu()">Contact</a>
+    <!-- Divider & portal buttons -->
+    <div class="mt-8 pt-8 border-t border-white/10 w-full px-10 flex flex-col gap-3">
+      <a href="{% url 'student_login' %}" class="btn-primary text-center py-3 px-6 text-sm rounded-lg" onclick="closeMobileMenu()">Student Portal</a>
+      <a href="{% url 'parent_login' %}" class="btn-outline text-center py-3 px-6 text-sm rounded-lg" onclick="closeMobileMenu()">Parent Connect</a>
+    </div>
+  </div>
+
+  <!-- ═══ HERO ═══ -->
+  <section class="hero-bg text-white pt-32 pb-20 px-6 md:px-16" id="hero">
+    <div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-14 items-center">
+      <div class="flex-1 max-w-xl">
+        <h1 class="text-5xl md:text-6xl font-bold leading-[1.1] mb-6 fade-up delay-1">Shaping<br/>Tomorrow's<br/>Leaders</h1>
+        <p class="text-blue-100 text-[15px] leading-relaxed mb-9 fade-up delay-2 max-w-md">
+          A complete management system for Punjab Board-affiliated schools and colleges — connecting students, teachers, parents, and administrators in one seamless platform.
+        </p>
+        <div class="flex flex-wrap gap-3 fade-up delay-3">
+         <a href="{% url 'student_login' %}" class="btn-primary px-7 py-2.5 text-sm">Student Portal &rsaquo;</a>
+<a href="{% url 'parent_login' %}" class="btn-outline px-7 py-2.5 text-sm">Parent Connect</a>
+        </div>
+        <p class="text-white/40 text-xs mt-8 fade-up delay-4 tracking-widest">BISE AFFILIATED &nbsp;·&nbsp; PCTB CURRICULUM &nbsp;·&nbsp; ISO CERTIFIED</p>
+      </div>
+
+      <div class="flex-1 grid grid-cols-2 gap-4 fade-up delay-4 w-full max-w-md">
+        <a href="{% url 'admin_console' %}" class="portal-card bg-white/10 rounded-2xl p-5 cursor-pointer block">
+          <div class="mb-3 text-[#e8b84b]"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></div>
+          <p class="font-semibold text-sm text-white">Admin Panel</p>
+          <p class="text-xs text-white/50 mt-0.5">Management &amp; Reports</p>
+        </a>
+        <a href="{% url 'teacher_dashboard' %}" class="portal-card bg-white/10 rounded-2xl p-5 cursor-pointer block">
+          <div class="mb-3 text-[#e8b84b]">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path d="M12 3L2 9l10 6 10-6-10-6z"/><path d="M2 17l10 6 10-6"/>
+            </svg>
+          </div>
+          <p class="font-semibold text-sm text-white">Teacher Portal</p>
+          <p class="text-xs text-white/50 mt-0.5">Classes &amp; Grading</p>
+        </a>
+        <a href= "{% url 'student_login' %}" class="portal-card bg-white/10 rounded-2xl p-5 cursor-pointer block">
+          <div class="mb-3 text-[#e8b84b]"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+          <p class="font-semibold text-sm text-white">Student Hub</p>
+          <p class="text-xs text-white/50 mt-0.5">Results &amp; Timetable</p>
+        </a>
+        <a href="{% url 'parent_login' %}" class="portal-card bg-white/10 rounded-2xl p-5 cursor-pointer block">
+          <div class="mb-3 text-[#e8b84b]"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <p class="font-semibold text-sm text-white">Parent Connect</p>
+          <p class="text-xs text-white/50 mt-0.5">Attendance &amp; Fees</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ ABOUT / IDENTITY ═══ -->
+  <section class="py-20 px-6 text-center reveal" id="about">
+    <div class="max-w-xl mx-auto">
+      <div class="flex justify-center text-[#0d2a4a] mb-6">
+        <svg class="w-12 h-12 opacity-80" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
+          <path d="M12 3L2 9l10 6 10-6-10-6z"/><path d="M2 17l10 6 10-6"/><path d="M2 13l10 6 10-6"/>
+        </svg>
+      </div>
+      <h2 class="text-3xl font-bold mb-2 heading-underline">Institution Management System</h2>
+      <div class="ornament mt-6 text-sm text-gray-300">✦</div>
+      <p class="text-gray-500 text-[15px] italic leading-relaxed mb-5">
+        "Empowering learners through quality education, discipline, and values — preparing students for board exams and a brighter future."
+      </p>
+      <p class="text-xs tracking-[0.22em] text-gray-400 uppercase">Est. Year &bull; Punjab, Pakistan &bull; BISE Affiliated</p>
+    </div>
+  </section>
+
+  <!-- ═══ STATS ═══ -->
+  <section class="bg-[#0d2a4a] py-16 px-6 reveal" id="stats">
+    <div class="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
+      <div>
+        <p class="stat-num text-5xl font-bold text-[#e8b84b] counter" data-target="1200" data-suffix="+">0</p>
+        <p class="text-[11px] tracking-widest uppercase text-blue-300 mt-2">Students Enrolled</p>
+      </div>
+      <div>
+        <p class="stat-num text-5xl font-bold text-[#e8b84b] counter" data-target="80" data-suffix="+">0</p>
+        <p class="text-[11px] tracking-widest uppercase text-blue-300 mt-2">Faculty Members</p>
+      </div>
+      <div>
+        <p class="stat-num text-5xl font-bold text-[#e8b84b] counter" data-target="95" data-suffix="%">0</p>
+        <p class="text-[11px] tracking-widest uppercase text-blue-300 mt-2">Board Pass Rate</p>
+      </div>
+      <div>
+        <p class="stat-num text-5xl font-bold text-[#e8b84b] counter" data-target="30" data-suffix="+">0</p>
+        <p class="text-[11px] tracking-widest uppercase text-blue-300 mt-2">Board Distinctions</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PORTALS ═══ -->
+  <section class="py-20 px-6 reveal" id="portals">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-bold heading-underline mb-4">Unified Digital Campus</h2>
+        <p class="text-gray-500 text-sm mt-6 max-w-md mx-auto">One platform for every stakeholder — from classroom to boardroom.</p>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div class="reveal">
+          <div class="flex justify-center mb-4"><div class="icon-wrap"><svg class="w-5 h-5 text-[#0d2a4a]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></div></div>
+          <p class="font-semibold text-sm mb-1">Administrator</p>
+          <p class="text-xs text-gray-400 leading-relaxed mb-3">Manage fee records, staff, timetables, and BISE form submissions.</p>
+          <a href="{% url 'admin_console' %}" class="text-[#0d2a4a] text-xs font-semibold hover:underline">Access Portal &rsaquo;</a>
+        </div>
+        <div class="reveal delay-1">
+          <div class="flex justify-center mb-4"><div class="icon-wrap"><svg class="w-5 h-5 text-[#0d2a4a]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 3L2 9l10 6 10-6-10-6z"/><path d="M2 17l10 6 10-6"/></svg></div></div>
+          <p class="font-semibold text-sm mb-1">Teacher</p>
+          <p class="text-xs text-gray-400 leading-relaxed mb-3">Enter marks, track attendance, share notes, and manage class tests.</p>
+          <a href="{% url 'teacher_dashboard' %}" class="text-[#0d2a4a] text-xs font-semibold hover:underline">Access Portal &rsaquo;</a>
+        </div>
+        <div class="reveal delay-2">
+          <div class="flex justify-center mb-4"><div class="icon-wrap"><svg class="w-5 h-5 text-[#0d2a4a]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div></div>
+          <p class="font-semibold text-sm mb-1">Student</p>
+          <p class="text-xs text-gray-400 leading-relaxed mb-3">View results, roll no. slips, timetables, and BISE exam schedule.</p>
+          <a href= "{% url 'student_login' %}" class="text-[#0d2a4a] text-xs font-semibold hover:underline">Access Portal &rsaquo;</a>
+        </div>
+        <div class="reveal delay-3">
+          <div class="flex justify-center mb-4"><div class="icon-wrap"><svg class="w-5 h-5 text-[#0d2a4a]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div></div>
+          <p class="font-semibold text-sm mb-1">Parent</p>
+          <p class="text-xs text-gray-400 leading-relaxed mb-3">Track attendance, fee challan, test results, and teacher messages.</p>
+          <a href="{% url 'parent_login' %}" class="text-[#0d2a4a] text-xs font-semibold hover:underline">Access Portal &rsaquo;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER / CONTACT ═══ -->
+<footer class="bg-gray-900 text-white py-16 px-6" id="contact">
+    <div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-12">
+      <div>
+        <p class="brand text-xl font-bold mb-3">Institution Management System</p>
+        <p class="text-gray-400 text-sm leading-relaxed mb-5">Punjab, Pakistan<br/>info@institution.edu.pk<br/>+92 300 0000000</p>
+        <div class="flex gap-4 mb-8">
+          <a href="#" class="text-gray-500 hover:text-[#e8b84b]"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+          <a href="#" class="text-gray-500 hover:text-[#e8b84b]"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+          <a href="#" class="text-gray-500 hover:text-[#e8b84b]"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+        </div>
+        <p class="text-xs uppercase tracking-widest text-gray-500 mb-3">Quick Links</p>
+        <ul class="space-y-2 text-sm text-gray-400">
+          <li><a href="#hero"    class="hover:text-[#e8b84b]">Home</a></li>
+          <li><a href="#about"   class="hover:text-[#e8b84b]">About Us</a></li>
+          <li><a href="#stats"   class="hover:text-[#e8b84b]">Stats</a></li>
+          <li><a href="#portals" class="hover:text-[#e8b84b]">Portals</a></li>
+          <li><a href="#contact" class="hover:text-[#e8b84b]">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="md:col-span-2">
+        <h3 class="font-semibold text-lg mb-6">Request Information</h3>
+        <form id="contact-form" class="space-y-3" onsubmit="handleFormSubmit(event)">
+          <div class="grid md:grid-cols-2 gap-3">
+            <input type="text" name="name" placeholder="Your Name" class="w-full bg-gray-800 rounded-lg px-4 py-2.5 text-sm placeholder-gray-500 border border-gray-700 focus:border-[#e8b84b] transition outline-none"/>
+            <input type="email" name="email" placeholder="Email Address" class="w-full bg-gray-800 rounded-lg px-4 py-2.5 text-sm placeholder-gray-500 border border-gray-700 focus:border-[#e8b84b] transition outline-none"/>
+          </div>
+          <div class="grid md:grid-cols-2 gap-3">
+            <input type="text" name="phone" placeholder="Phone Number" class="w-full bg-gray-800 rounded-lg px-4 py-2.5 text-sm placeholder-gray-500 border border-gray-700 focus:border-[#e8b84b] transition outline-none"/>
+            <select name="role" class="w-full bg-gray-800 rounded-lg px-4 py-2.5 text-sm text-gray-400 border border-gray-700 focus:border-[#e8b84b] transition outline-none">
+              <option>I am a...</option>
+              <option>Prospective Student</option>
+              <option>Parent / Guardian</option>
+              <option>Institution Administrator</option>
+            </select>
+          </div>
+          <textarea name="message" placeholder="Your Message or Query" rows="4" class="w-full bg-gray-800 rounded-lg px-4 py-2.5 text-sm placeholder-gray-500 border border-gray-700 focus:border-[#e8b84b] transition resize-none outline-none"></textarea>
+          <button type="submit" class="w-full bg-[#e8b84b] hover:bg-[#f5d07a] text-[#0d2a4a] font-semibold py-3 rounded-lg text-sm transition">Send Message</button>
+          <p id="form-success" class="text-green-400 text-sm hidden text-center pt-1">✓ Message received — we'll be in touch shortly.</p>
+        </form>
+      </div>
+    </div>
+    <div class="max-w-5xl mx-auto mt-10 pt-6 border-t border-gray-800 text-xs text-gray-600 text-center">
+      &copy; <span id="yr"></span> Institution Management System. All rights reserved. &bull; Punjab, Pakistan &bull; BISE Affiliated
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // ── Reveal on scroll ──
+    const revealEls = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08 });
+    revealEls.forEach(el => observer.observe(el));
+
+    // ── Counter animation ──
+    function animateCounters() {
+      document.querySelectorAll('.counter').forEach(el => {
+        const target = parseInt(el.dataset.target);
+        const suffix = el.dataset.suffix || '+';
+        let current = 0;
+        const step = Math.ceil(target / 60);
+        const timer = setInterval(() => {
+          current = Math.min(current + step, target);
+          el.textContent = current.toLocaleString() + suffix;
+          if (current >= target) clearInterval(timer);
+        }, 18);
+      });
+    }
+    const firstCounter = document.querySelector('.counter');
+    if (firstCounter) {
+      const statsObs = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) { animateCounters(); statsObs.disconnect(); }
+      }, { threshold: 0.3 });
+      statsObs.observe(firstCounter);
+    }
+
+    // ── Form submit ──
+    async function handleFormSubmit(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type="submit"]');
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+
+  const res = await fetch('https://formspree.io/f/xlgodwyg', {
+    method: 'POST',
+    body: new FormData(form),
+    headers: { 'Accept': 'application/json' }
+  });
+
+  if (res.ok) {
+    document.getElementById('form-success').classList.remove('hidden');
+    form.reset();
+    setTimeout(() => document.getElementById('form-success').classList.add('hidden'), 4000);
+  } else {
+    alert('Failed to send. Please try again.');
+  }
+
+  btn.textContent = 'Send Message';
+  btn.disabled = false;
+}
+
+    // ── Mobile menu ──
+    const hamburger   = document.getElementById('hamburger');
+    const mobileMenu  = document.getElementById('mobile-menu');
+    const closeBtn    = document.getElementById('close-menu');
+    const bars        = hamburger.querySelectorAll('.bar');
+
+    function openMobileMenu() {
+      mobileMenu.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      // Animate bars to X
+      bars[0].style.transform = 'translateY(7px) rotate(45deg)';
+      bars[1].style.opacity   = '0';
+      bars[2].style.transform = 'translateY(-7px) rotate(-45deg)';
+    }
+    function closeMobileMenu() {
+      mobileMenu.classList.remove('open');
+      document.body.style.overflow = '';
+      bars[0].style.transform = '';
+      bars[1].style.opacity   = '1';
+      bars[2].style.transform = '';
+    }
+
+    hamburger.addEventListener('click', () => {
+      mobileMenu.classList.contains('open') ? closeMobileMenu() : openMobileMenu();
+    });
+    closeBtn.addEventListener('click', closeMobileMenu);
+
+    // ── Nav background on scroll ──
+    const mainNav = document.getElementById('main-nav');
+    function updateNav() {
+      // Hero section ends roughly at its height; go solid after 60px
+      const heroEl = document.getElementById('hero');
+      const heroBottom = heroEl ? heroEl.offsetTop + heroEl.offsetHeight : 600;
+      if (window.scrollY > heroBottom - 80) {
+        mainNav.classList.add('scrolled');
+      } else {
+        mainNav.classList.remove('scrolled');
+      }
+    }
+    window.addEventListener('scroll', updateNav, { passive: true });
+    updateNav();
+
+    // ── Active nav link on scroll ──
+    const sections = ['hero', 'about', 'stats', 'portals', 'contact'];
+    const navLinks  = document.querySelectorAll('.nav-link');
+
+    function setActiveLink() {
+      let current = 'hero';
+      sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && window.scrollY >= el.offsetTop - 80) current = id;
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.section === current);
+      });
+    }
+    window.addEventListener('scroll', setActiveLink, { passive: true });
+    setActiveLink();
+  </script>
+</body>
+</html>

@@ -1,0 +1,908 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f7fa;
+  --white:#ffffff;
+  --border:#e5e7eb;
+  --text-primary:#1a1d23;
+  --text-secondary:#4b5563;
+  --text-muted:#9ca3af;
+  --sidebar-bg:#0f1623;
+  --sidebar-w:240px;
+  --teal:#0d9488;
+  --teal2:#14b8a6;
+  --blue:#2563eb;
+  --green:#16a34a;
+  --purple:#7c3aed;
+  --amber:#d97706;
+  --rose:#e11d48;
+  --shadow:0 1px 4px rgba(0,0,0,.07);
+  --shadow-lg:0 10px 40px rgba(0,0,0,.15);
+  --radius:12px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+
+/* ─── SIDEBAR ─── */
+.sidebar{
+  width:var(--sidebar-w);position:fixed;top:0;left:0;height:100vh;
+  background:var(--sidebar-bg);z-index:300;
+  display:flex;flex-direction:column;
+  transition:transform .25s ease;
+  overflow-y:auto;
+}
+.sidebar-brand{
+  padding:20px 18px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.brand-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--teal2),var(--blue));
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 0 14px rgba(20,184,166,.3);
+}
+.brand-text h2{font-size:12.5px;font-weight:700;color:#fff;line-height:1.3}
+.brand-text span{font-size:10px;color:rgba(255,255,255,.4);display:block;margin-top:2px}
+.student-badge{
+  font-size:9px;font-weight:700;letter-spacing:.6px;padding:2px 8px;
+  border-radius:20px;border:1px solid rgba(20,184,166,.4);color:var(--teal2);
+  background:rgba(20,184,166,.1);white-space:nowrap;margin-left:auto;
+}
+
+.sidebar-nav{padding:12px 0;flex:1}
+.nav-label{
+  font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:rgba(255,255,255,.25);padding:10px 18px 5px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 18px;font-size:13px;font-weight:600;
+  color:rgba(255,255,255,.5);background:transparent;
+  border:none;border-left:3px solid transparent;
+  cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;
+  text-align:left;width:100%;text-decoration:none;
+  transition:all .18s;
+}
+.nav-item svg{flex-shrink:0;opacity:.6;transition:opacity .18s}
+.nav-item:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.06)}
+.nav-item:hover svg{opacity:.9}
+.nav-item.active{color:#fff;background:rgba(20,184,166,.15);border-left-color:var(--teal2);font-weight:700}
+.nav-item.active svg{opacity:1}
+
+.sidebar-user{
+  padding:14px 18px;border-top:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;gap:10px;
+}
+.user-avatar-sb{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal2),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;
+}
+.user-avatar-sb img{width:100%;height:100%;object-fit:cover}
+.user-info-sb h4{font-size:12.5px;font-weight:700;color:#fff;line-height:1.3}
+.user-info-sb p{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:1px}
+
+/* ─── MOBILE TOGGLE ─── */
+.sidebar-toggle{
+  display:none;position:fixed;top:14px;left:14px;z-index:500;
+  width:38px;height:38px;border-radius:9px;
+  background:var(--sidebar-bg);color:#fff;
+  border:none;cursor:pointer;font-size:17px;
+  align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:290;backdrop-filter:blur(2px);
+}
+
+/* ─── MAIN ─── */
+.main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
+.topbar{
+  height:56px;background:var(--sidebar-bg);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  padding:0 28px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:100;
+}
+.topbar h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+
+/* Avatar dropdown (same as admin) */
+.avatar-wrap{position:relative}
+.admin-top-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal2),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;cursor:pointer;
+  border:2px solid rgba(255,255,255,.2);overflow:hidden;
+}
+.admin-top-avatar img{width:100%;height:100%;object-fit:cover}
+.avatar-dropdown{
+  position:absolute;top:calc(100% + 10px);right:0;width:220px;
+  background:#fff;border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,.12);
+  border:1px solid rgba(0,0,0,.08);overflow:hidden;
+  display:none;z-index:1000;
+  animation:fadeUpIn .2s ease;
+}
+.avatar-dropdown.open{display:block}
+@keyframes fadeUpIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.avd-profile{padding:14px;background:#f8fbfe;display:flex;align-items:center;gap:10px;border-bottom:1px solid #edf2f7}
+.avd-avatar{width:34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;overflow:hidden}
+.avd-avatar img{width:100%;height:100%;object-fit:cover}
+.avd-name{font-size:13px;font-weight:700;color:#0f172a}
+.avd-email{font-size:10.5px;color:#64748b;margin-top:1px}
+.avd-role{font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;background:rgba(20,184,166,.12);color:var(--teal);display:inline-block;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.avd-menu{padding:6px}
+.avd-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  color:#475569;font-size:13px;font-weight:600;text-decoration:none;
+  border-radius:8px;transition:all .15s;background:none;border:none;
+  width:100%;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;
+}
+.avd-item:hover{background:#f1f5f9;color:#0f172a}
+.avd-item.danger:hover{background:#fff1f2;color:var(--rose)}
+.avd-divider{height:1px;background:#edf2f7;margin:5px 0}
+
+.content{flex:1;padding:24px 28px 60px}
+
+/* ─── PAGES ─── */
+.section{display:none}
+.section.active{display:block}
+
+/* ─── HERO ─── */
+.hero{
+  position:relative;overflow:hidden;border-radius:16px;
+  padding:32px 36px;margin-bottom:24px;
+  background:linear-gradient(135deg,#0f2744 0%,#1a4a7a 100%);
+  border:1px solid rgba(255,255,255,.1);
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 80% at -10% 50%,rgba(20,184,166,.25) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 60% at 110% 20%,rgba(37,99,235,.15) 0%,transparent 55%);
+}
+.hero-content{position:relative;z-index:1;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.hero-avatar{
+  width:78px;height:78px;border-radius:50%;
+  background:linear-gradient(135deg,var(--teal2),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:700;color:#fff;flex-shrink:0;
+  border:3px solid rgba(255,255,255,.2);box-shadow:0 0 20px rgba(20,184,166,.3);overflow:hidden;
+}
+.hero-avatar img{width:100%;height:100%;object-fit:cover}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  color:var(--teal2);background:rgba(20,184,166,.12);
+  border:1px solid rgba(20,184,166,.25);padding:2px 10px;border-radius:20px;margin-bottom:8px;
+}
+.hero-name{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px;margin-bottom:6px}
+.hero-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+  padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.12);
+}
+.hero-stats{display:flex;gap:10px;flex-wrap:wrap}
+.hero-stat{padding:7px 14px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);text-align:center}
+.hero-stat-val{font-size:18px;font-weight:700;color:#fff;line-height:1}
+.hero-stat-lbl{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+
+/* ─── STAT GRID ─── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--white);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;align-items:center;gap:14px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.green::before{background:linear-gradient(90deg,var(--green),#22c55e)}
+.stat-card.rose::before{background:linear-gradient(90deg,var(--rose),#f43f5e)}
+.stat-card.amber::before{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+.stat-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-info p{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.stat-info h3{font-size:22px;font-weight:700;color:var(--text-primary);line-height:1.1;margin-top:2px}
+
+/* ─── CARDS ─── */
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;margin-bottom:20px}
+.card-head{padding:14px 18px;background:#f9fafb;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-title{font-size:13px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:7px}
+.card-dot{width:7px;height:7px;border-radius:50%}
+.card-body{padding:18px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
+
+/* ─── TABLE ─── */
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:380px}
+thead th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--text-muted);padding:10px 16px;background:#f9fafb;border-bottom:1px solid var(--border)}
+tbody td{padding:12px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text-primary)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#f8fbfe}
+
+/* ─── BADGE ─── */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.3px}
+.badge-green{background:rgba(22,163,74,.1);color:var(--green);border:1px solid rgba(22,163,74,.2)}
+.badge-rose{background:rgba(225,29,72,.1);color:var(--rose);border:1px solid rgba(225,29,72,.2)}
+.badge-teal{background:rgba(13,148,136,.12);color:var(--teal);border:1px solid rgba(13,148,136,.25)}
+.badge-blue{background:rgba(37,99,235,.1);color:var(--blue);border:1px solid rgba(37,99,235,.2)}
+.badge-amber{background:rgba(217,119,6,.1);color:var(--amber);border:1px solid rgba(217,119,6,.2)}
+.badge-gray{background:rgba(0,0,0,.05);color:var(--text-secondary);border:1px solid var(--border)}
+
+/* ─── TASK ITEM ─── */
+.task-item{display:flex;align-items:flex-start;gap:13px;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s}
+.task-item:last-child{border-bottom:none}
+.task-item:hover{background:#f8fbfe}
+.task-icon{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.task-body{flex:1;min-width:0}
+.task-name{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:3px}
+.task-meta{font-size:11.5px;color:var(--text-muted)}
+
+/* ─── FILTER PILLS ─── */
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.fpill{padding:6px 14px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--white);border:1px solid var(--border);border-radius:24px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .15s}
+.fpill:hover{color:var(--text-primary)}
+.fpill.active{background:rgba(13,148,136,.1);color:var(--teal);border-color:rgba(13,148,136,.35)}
+
+/* ─── PROFILE GRID ─── */
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.profile-field{padding:12px 14px;background:#f9fafb;border-radius:9px;border:1px solid var(--border)}
+.pf-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:5px}
+.pf-value{font-size:13px;font-weight:600;color:var(--text-primary)}
+.profile-field.full{grid-column:1/-1}
+
+/* ─── TIMETABLE ─── */
+.tt-day-block{margin-bottom:18px}
+.tt-day-header{padding:12px 18px;background:#f9fafb;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.tt-day-name{font-size:13px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:7px}
+.day-dot{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+
+/* ─── PROG BAR ─── */
+.prog-bar{height:5px;background:#e5e7eb;border-radius:4px;overflow:hidden;flex:1;min-width:50px}
+.prog-fill{height:100%;border-radius:4px}
+
+/* ─── EMPTY STATE ─── */
+.empty-state{text-align:center;padding:48px 24px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius)}
+.empty-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.empty-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.empty-sub{font-size:12px;color:var(--text-muted);max-width:260px;margin:0 auto}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:#fff;color:var(--text-primary);padding:12px 16px;border-radius:12px;box-shadow:var(--shadow-lg);font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;border-left:3px solid var(--green);animation:slideUpToast .3s ease}
+@keyframes slideUpToast{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── BTN ─── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-ghost{background:#f3f4f6;color:var(--text-primary);border:1px solid var(--border)}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-toggle{display:flex}
+  .sidebar-overlay.active{display:block}
+  .main{margin-left:0}
+  .content{padding:16px 16px 60px}
+  .topbar{padding:0 16px;padding-left:60px}
+  .two-col,.profile-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .hero{padding:24px 20px}
+  .hero-content{flex-direction:column}
+}
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .hero-stats{gap:8px}
+  .hero-stat{padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Mobile Toggle ─── -->
+<button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- ═══════════════════════════
+     SIDEBAR (matches admin)
+═══════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="20" height="20">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h2>Institution<br>Management</h2>
+      <span>Student Portal</span>
+    </div>
+    <span class="student-badge">STUDENT</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active" onclick="showSection('overview',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+
+    <div class="nav-label">My Info</div>
+    <button class="nav-item" onclick="showSection('profile',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      My Profile
+    </button>
+
+    <div class="nav-label">Academics</div>
+    <button class="nav-item" onclick="showSection('timetable',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+      Timetable
+    </button>
+    <button class="nav-item" onclick="showSection('attendance',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Attendance
+    </button>
+    <button class="nav-item" onclick="showSection('hometasks',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Home Tasks
+    </button>
+  </nav>
+
+  <div class="sidebar-user">
+    <div class="user-avatar-sb">
+      {% if student.profile_picture %}
+        <img src="{{ student.profile_picture.url }}" alt="{{ student.full_name }}">
+      {% else %}
+        {{ student.full_name|first|upper }}
+      {% endif %}
+    </div>
+    <div class="user-info-sb">
+      <h4>{{ student.full_name }}</h4>
+      <p>{{ student.email|default:student.student_class }}</p>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════
+     MAIN
+═══════════════════════════ -->
+<main class="main">
+  <header class="topbar">
+    <h1 id="pageTitle">Dashboard</h1>
+    <div class="topbar-right">
+      <div class="avatar-wrap">
+        <div class="admin-top-avatar" id="topAvatarBtn">
+          {% if student.profile_picture %}
+            <img src="{{ student.profile_picture.url }}" alt="">
+          {% else %}
+            {{ student.full_name|first|upper }}
+          {% endif %}
+        </div>
+        <div class="avatar-dropdown" id="topAvatarDropdown">
+          <div class="avd-profile">
+            <div class="avd-avatar">
+              {% if student.profile_picture %}
+                <img src="{{ student.profile_picture.url }}" alt="">
+              {% else %}
+                {{ student.full_name|first|upper }}
+              {% endif %}
+            </div>
+            <div>
+              <div class="avd-name">{{ student.full_name }}</div>
+              <div class="avd-email">{{ student.email|default:student.student_class }}</div>
+              <span class="avd-role">STUDENT</span>
+            </div>
+          </div>
+          <div class="avd-menu">
+            <a href="#" class="avd-item" onclick="showSection('overview',document.querySelector('.nav-item')); closeDropdown(); return false;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Dashboard
+            </a>
+            <div class="avd-divider"></div>
+            <a href="{% url 'student_password_reset' %}" class="avd-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Change Password
+            </a>
+            <div class="avd-divider"></div>
+            <form method="post" action="{% url 'student_logout' %}" style="margin:0">
+              {% csrf_token %}
+              <button type="submit" class="avd-item danger" style="width:100%;border:none;background:none;font-family:inherit;text-align:left;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Log Out
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- Toast -->
+    {% if messages %}{% for message in messages %}
+    <div class="toast">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      {{ message }}
+    </div>
+    {% endfor %}{% endif %}
+
+    <!-- ════ OVERVIEW ════ -->
+    <div id="section-overview" class="section active">
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-avatar">
+            {% if student.profile_picture %}
+              <img src="{{ student.profile_picture.url }}" alt="{{ student.full_name }}">
+            {% else %}
+              {{ student.full_name|first|upper }}
+            {% endif %}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="hero-eyebrow">
+              <svg width="8" height="8" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#14b8a6"/></svg>
+              Student Portal
+            </div>
+            <div class="hero-name">{{ student.full_name }}</div>
+            <div class="hero-meta">
+              <span class="hero-tag">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                {{ student.student_class }}
+              </span>
+              <span class="hero-tag">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Roll #{{ student.roll_number|default:"—" }}
+              </span>
+              <span class="hero-tag">{{ student.get_gender_display }}</span>
+            </div>
+            <div class="hero-stats">
+              <div class="hero-stat">
+                <div class="hero-stat-val" style="color:#14b8a6">{{ total_tasks }}</div>
+                <div class="hero-stat-lbl">Tasks</div>
+              </div>
+              <div class="hero-stat">
+                <div class="hero-stat-val" style="color:#60a5fa">{{ attendance_pct }}%</div>
+                <div class="hero-stat-lbl">Attendance</div>
+              </div>
+              <div class="hero-stat">
+                <div class="hero-stat-val" style="color:#a78bfa">{{ timetable_periods }}</div>
+                <div class="hero-stat-lbl">Periods/Wk</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ATTENDANCE STAT GRID -->
+      <div class="stat-grid">
+        <div class="stat-card green">
+          <div class="stat-icon" style="background:rgba(22,163,74,.1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="stat-info"><p>Present</p><h3>{{ present_count }}</h3></div>
+        </div>
+        <div class="stat-card rose">
+          <div class="stat-icon" style="background:rgba(225,29,72,.1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <div class="stat-info"><p>Absent</p><h3>{{ absent_count }}</h3></div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon" style="background:rgba(217,119,6,.1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="stat-info"><p>On Leave</p><h3>{{ leave_count }}</h3></div>
+        </div>
+      </div>
+
+      <!-- RECENT TASKS + TODAY SCHEDULE -->
+      <div class="two-col">
+        <!-- Recent Tasks -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><div class="card-dot" style="background:var(--teal)"></div>Recent Home Tasks</div>
+            <button class="badge badge-teal" onclick="showSection('hometasks',document.querySelectorAll('.nav-item')[4])" style="cursor:pointer;border:1px solid rgba(13,148,136,.25);background:rgba(13,148,136,.1);color:var(--teal)">View all</button>
+          </div>
+          {% for task in recent_tasks %}
+          <div class="task-item">
+            <div class="task-icon" style="background:{% if task.is_overdue %}rgba(225,29,72,.08){% else %}rgba(13,148,136,.08){% endif %}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{% if task.is_overdue %}#e11d48{% else %}#0d9488{% endif %}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="task-body">
+              <div class="task-name">{{ task.title }}</div>
+              <div class="task-meta">{{ task.subject.name }} · {{ task.assigned_by.full_name }}</div>
+            </div>
+            <div>
+              {% if task.is_overdue %}<span class="badge badge-rose">Overdue</span>
+              {% else %}<span class="badge badge-teal">{{ task.due_date }}</span>{% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:36px">No tasks yet.</div>
+          {% endfor %}
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><div class="card-dot" style="background:var(--blue)"></div>Today's Schedule</div>
+            <button class="badge badge-blue" onclick="showSection('timetable',document.querySelectorAll('.nav-item')[2])" style="cursor:pointer;border:1px solid rgba(37,99,235,.2);background:rgba(37,99,235,.1);color:var(--blue)">Full view</button>
+          </div>
+          {% if today_slots %}
+            {% for slot in today_slots %}
+            <div class="task-item">
+              <div class="task-icon" style="background:rgba(37,99,235,.08)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="task-body">
+                <div class="task-name">{{ slot.subject }}</div>
+                <div class="task-meta">{{ slot.teacher.full_name|default:"—" }} · {{ slot.start_time|time:"H:i" }}–{{ slot.end_time|time:"H:i" }}</div>
+              </div>
+              <span class="badge badge-gray">P{{ slot.period_number }}</span>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center;padding:36px 20px">
+              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">No classes today</div>
+              <div style="font-size:12px;color:var(--text-muted)">Enjoy your free day!</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <!-- end overview -->
+
+    <!-- ════ PROFILE ════ -->
+    <div id="section-profile" class="section">
+      <div style="margin-bottom:20px">
+        <h2 style="font-size:15px;font-weight:700;">My Profile</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:3px">Personal and academic information</p>
+      </div>
+      <div class="two-col">
+        <!-- Personal -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><div class="card-dot" style="background:var(--teal)"></div>Personal Information</div>
+          </div>
+          <div class="card-body">
+            <div style="text-align:center;margin-bottom:18px">
+              {% if student.profile_picture %}
+              <img src="{{ student.profile_picture.url }}" alt="{{ student.full_name }}"
+                   style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--border)">
+              {% else %}
+              <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#14b8a6,#2563eb);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin:0 auto;border:3px solid var(--border)">{{ student.full_name|first|upper }}</div>
+              {% endif %}
+            </div>
+            <div class="profile-grid">
+              <div class="profile-field full"><div class="pf-label">Full Name</div><div class="pf-value">{{ student.full_name }}</div></div>
+              <div class="profile-field"><div class="pf-label">Date of Birth</div><div class="pf-value">{{ student.date_of_birth|default:"—" }}</div></div>
+              <div class="profile-field"><div class="pf-label">Gender</div><div class="pf-value">{{ student.get_gender_display }}</div></div>
+              <div class="profile-field"><div class="pf-label">Phone</div><div class="pf-value">{{ student.phone|default:"—" }}</div></div>
+              <div class="profile-field full"><div class="pf-label">Address</div><div class="pf-value">{{ student.address|default:"—" }}</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Academic -->
+        <div>
+          <div class="card">
+            <div class="card-head"><div class="card-title"><div class="card-dot" style="background:var(--blue)"></div>Academic Information</div></div>
+            <div class="card-body">
+              <div class="profile-grid">
+                <div class="profile-field"><div class="pf-label">Class</div><div class="pf-value">{{ student.student_class }}</div></div>
+                <div class="profile-field"><div class="pf-label">Roll Number</div><div class="pf-value">{{ student.roll_number|default:"—" }}</div></div>
+                <div class="profile-field"><div class="pf-label">Admission No</div><div class="pf-value">{{ student.admission_number|default:"—" }}</div></div>
+                <div class="profile-field"><div class="pf-label">Admission Date</div><div class="pf-value">{{ student.admission_date|default:"—" }}</div></div>
+                <div class="profile-field full"><div class="pf-label">Academic Year</div><div class="pf-value">{{ student.student_class.academic_year|default:"—" }}</div></div>
+              </div>
+            </div>
+          </div>
+         <div class="card" style="margin-top:0">
+    <div class="card-head"><div class="card-title"><div class="card-dot" style="background:var(--purple)"></div>Guardian Information</div></div>
+    <div class="card-body">
+        {% with guardian=student.parents.first %}
+        {% if guardian %}
+        <div class="profile-grid">
+            <div class="profile-field full"><div class="pf-label">Guardian Name</div><div class="pf-value">{{ guardian.full_name }}</div></div>
+            <div class="profile-field"><div class="pf-label">Guardian Phone</div><div class="pf-value">{{ guardian.phone|default:"—" }}</div></div>
+            <div class="profile-field"><div class="pf-label">Relation</div><div class="pf-value">{{ guardian.get_relation_display }}</div></div>
+        </div>
+        {% else %}
+        <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">No guardian linked.</div>
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+        </div>
+      </div>
+    </div>
+    <!-- end profile -->
+
+    <!-- ════ TIMETABLE ════ -->
+    <div id="section-timetable" class="section">
+      <div style="margin-bottom:20px">
+        <h2 style="font-size:15px;font-weight:700;">My Timetable</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:3px">Weekly schedule for {{ student.student_class }}</p>
+      </div>
+      <div class="filter-pills">
+        <button class="fpill active" onclick="ttFilter('all',this)">All Days</button>
+        {% for day in timetable_days %}
+        <button class="fpill" onclick="ttFilter('{{ day|lower }}',this)">{{ day }}</button>
+        {% endfor %}
+      </div>
+      {% if student_timetable %}
+        {% for day, slots in student_timetable.items %}
+        <div class="card tt-day-block" data-day="{{ day|lower }}">
+          <div class="tt-day-header">
+            <div class="tt-day-name"><div class="day-dot"></div>{{ day }}</div>
+            <span class="badge badge-teal">{{ slots|length }} period{% if slots|length != 1 %}s{% endif %}</span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Period</th><th>Time</th><th>Subject</th><th>Teacher</th><th>Duration</th></tr></thead>
+              <tbody>
+                {% for slot in slots %}
+                <tr>
+                  <td><span class="badge badge-gray">P{{ slot.period_number }}</span></td>
+                  <td style="font-size:12px;font-weight:600;color:var(--teal)">{{ slot.start_time|time:"H:i" }} – {{ slot.end_time|time:"H:i" }}</td>
+                  <td style="font-weight:600">{{ slot.subject }}</td>
+                  <td style="color:var(--text-secondary)">{{ slot.teacher.full_name|default:"—" }}</td>
+                  <td style="font-size:12px;color:var(--text-muted)">{{ slot.duration }} min</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon" style="background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.2)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+          </div>
+          <div class="empty-title">No Timetable Assigned Yet</div>
+          <div class="empty-sub">Your class schedule will appear once the admin sets it up.</div>
+        </div>
+      {% endif %}
+    </div>
+    <!-- end timetable -->
+
+    <!-- ════ ATTENDANCE ════ -->
+    <div id="section-attendance" class="section">
+      <div style="margin-bottom:20px">
+        <h2 style="font-size:15px;font-weight:700;">My Attendance</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:3px">Attendance record for this academic session</p>
+      </div>
+      <div class="stat-grid" style="margin-bottom:20px">
+        <div class="stat-card green">
+          <div class="stat-icon" style="background:rgba(22,163,74,.1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="stat-info">
+            <p>Present</p><h3>{{ present_count }}</h3>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+              <div class="prog-bar"><div class="prog-fill" style="width:{{ attendance_pct }}%;background:var(--green)"></div></div>
+              <span style="font-size:11px;font-weight:700;color:var(--green)">{{ attendance_pct }}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="stat-card rose">
+          <div class="stat-icon" style="background:rgba(225,29,72,.1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <div class="stat-info"><p>Absent</p><h3>{{ absent_count }}</h3></div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon" style="background:rgba(217,119,6,.1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="stat-info"><p>On Leave</p><h3>{{ leave_count }}</h3></div>
+        </div>
+      </div>
+      <div class="filter-pills">
+        <button class="fpill active" onclick="attFilter('all',this)">All</button>
+        <button class="fpill" onclick="attFilter('present',this)">Present</button>
+        <button class="fpill" onclick="attFilter('absent',this)">Absent</button>
+        <button class="fpill" onclick="attFilter('leave',this)">Leave</button>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><div class="card-dot" style="background:var(--green)"></div>Attendance History</div>
+          <span class="badge badge-gray" id="att-count">{{ attendance_records|length }} records</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Subject</th><th>Teacher</th><th>Status</th></tr></thead>
+            <tbody id="att-tbody">
+              {% for record in attendance_records %}
+              <tr class="att-row" data-status="{{ record.status }}">
+                <td style="font-size:12px;font-weight:600">{{ record.date }}</td>
+                <td style="font-weight:600">{{ record.subject.name }}</td>
+                <td style="color:var(--text-secondary)">{{ record.marked_by.full_name|default:"—" }}</td>
+                <td>
+                  {% if record.status == 'present' %}<span class="badge badge-green">Present</span>
+                  {% elif record.status == 'absent' %}<span class="badge badge-rose">Absent</span>
+                  {% else %}<span class="badge badge-amber">Leave</span>{% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:36px">No records found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="att-no-results" style="display:none;text-align:center;color:var(--text-muted);font-size:13px;padding:28px">No records match this filter.</div>
+      </div>
+    </div>
+    <!-- end attendance -->
+
+    <!-- ════ HOME TASKS ════ -->
+    <div id="section-hometasks" class="section">
+      <div style="margin-bottom:20px">
+        <h2 style="font-size:15px;font-weight:700;">Home Tasks</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:3px">Assignments from your teachers</p>
+      </div>
+      <div class="filter-pills">
+        <button class="fpill active" onclick="taskFilter('all',this)">All Tasks</button>
+        <button class="fpill" onclick="taskFilter('pending',this)">Pending</button>
+        <button class="fpill" onclick="taskFilter('overdue',this)">Overdue</button>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><div class="card-dot" style="background:var(--teal)"></div>All Assignments</div>
+          <span class="badge badge-teal" id="task-count">{{ hometasks|length }} tasks</span>
+        </div>
+        <div id="task-list">
+          {% for task in hometasks %}
+          <div class="task-item task-row" data-overdue="{% if task.is_overdue %}1{% else %}0{% endif %}">
+            <div class="task-icon" style="background:{% if task.is_overdue %}rgba(225,29,72,.08){% else %}rgba(13,148,136,.08){% endif %}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{% if task.is_overdue %}#e11d48{% else %}#0d9488{% endif %}" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div class="task-body">
+              <div class="task-name">{{ task.title }}</div>
+              <div class="task-meta" style="margin-bottom:3px"><strong style="color:var(--text-primary)">{{ task.subject.name }}</strong> · {{ task.assigned_by.full_name }} · Assigned: {{ task.assigned_date|default:task.due_date }}</div>
+              {% if task.description %}
+              <div style="font-size:12px;color:var(--text-muted);margin-top:3px">{{ task.description|truncatechars:100 }}</div>
+              {% endif %}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+              {% if task.is_overdue %}<span class="badge badge-rose">Overdue</span>
+              {% else %}<span class="badge badge-teal">Due {{ task.due_date }}</span>{% endif %}
+              {% if task.attachment %}
+              <a href="{{ task.attachment.url }}" target="_blank" style="font-size:11px;font-weight:600;color:var(--teal);text-decoration:none;display:flex;align-items:center;gap:3px">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </a>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:48px">No tasks assigned yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <!-- end home tasks -->
+
+  </div><!-- /content -->
+</main>
+
+<script>
+// ─── Section switching ───
+var pageTitles = {
+  overview:'Dashboard', profile:'My Profile',
+  timetable:'Timetable', attendance:'Attendance', hometasks:'Home Tasks'
+};
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(b){b.classList.remove('active');});
+  var s = document.getElementById('section-'+name);
+  if(s) s.classList.add('active');
+  if(btn) btn.classList.add('active');
+  var t = document.getElementById('pageTitle');
+  if(t) t.textContent = pageTitles[name] || 'Dashboard';
+  window.scrollTo({top:0,behavior:'smooth'});
+  // close sidebar on mobile after nav
+  if(window.innerWidth <= 768) closeSidebar();
+}
+
+// ─── Sidebar mobile ───
+function toggleSidebar() {
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sidebarOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('active');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+}
+
+// ─── Avatar dropdown ───
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('topAvatarBtn');
+  var dd  = document.getElementById('topAvatarDropdown');
+  btn.addEventListener('click', function(e){ e.stopPropagation(); dd.classList.toggle('open'); });
+  document.addEventListener('click', function(){ dd.classList.remove('open'); });
+});
+function closeDropdown(){
+  document.getElementById('topAvatarDropdown').classList.remove('open');
+}
+
+// ─── Timetable filter ───
+function ttFilter(day, btn) {
+  document.querySelectorAll('.filter-pills .fpill').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.tt-day-block').forEach(function(b){
+    b.style.display = (day === 'all' || b.dataset.day === day) ? '' : 'none';
+  });
+}
+
+// ─── Attendance filter ───
+function attFilter(status, btn) {
+  document.querySelectorAll('#section-attendance .fpill').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var rows = document.querySelectorAll('.att-row');
+  var visible = 0;
+  rows.forEach(function(r){
+    var show = (status === 'all' || r.dataset.status === status);
+    r.style.display = show ? '' : 'none';
+    if(show) visible++;
+  });
+  var c = document.getElementById('att-count');
+  if(c) c.textContent = visible + ' records';
+  var nr = document.getElementById('att-no-results');
+  if(nr) nr.style.display = (visible === 0 && rows.length > 0) ? 'block' : 'none';
+}
+
+// ─── Task filter ───
+function taskFilter(type, btn) {
+  document.querySelectorAll('#section-hometasks .fpill').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var rows = document.querySelectorAll('.task-row');
+  var visible = 0;
+  rows.forEach(function(r){
+    var show = true;
+    if(type === 'overdue') show = r.dataset.overdue === '1';
+    else if(type === 'pending') show = r.dataset.overdue === '0';
+    r.style.display = show ? '' : 'none';
+    if(show) visible++;
+  });
+  var c = document.getElementById('task-count');
+  if(c) c.textContent = visible + ' tasks';
+}
+
+// ─── Toast auto-dismiss ───
+window.addEventListener('load', function(){
+  document.querySelectorAll('.toast').forEach(function(t){
+    setTimeout(function(){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 400); }, 3000);
+  });
+});
+
+// ─── Auto-open tab from ?tab= param ───
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var tab = params.get('tab');
+  if(tab){
+    var navItems = document.querySelectorAll('.nav-item');
+    var map = {overview:0, profile:1, timetable:2, attendance:3, hometasks:4};
+    var idx = map[tab];
+    if(idx !== undefined) showSection(tab, navItems[idx]);
+    history.replaceState(null, '', window.location.pathname);
+  }
+})();
+</script>
+
+</body>
+</html>
