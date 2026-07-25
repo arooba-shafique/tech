@@ -87,6 +87,22 @@ class TeacherProfile(models.Model):
         ('vp', 'VP'),
         ('group_head', 'Group Head'),
     )
+    EMPLOYMENT_TYPE_CHOICES = (
+        ('permanent', 'Permanent'),
+        ('contract', 'Contract'),
+        ('daily_wager', 'Daily Wager'),
+    )
+    SKILL_LEVEL_CHOICES = (
+        ('permanent_professional', 'Permanent Professional'),
+        ('skilled', 'Skilled'),
+        ('semi_skilled', 'Semi Skilled'),
+        ('unskilled', 'Unskilled'),
+    )
+    SALARY_TYPE_CHOICES = (
+        ('monthly', 'Monthly'),
+        ('daily', 'Daily'),
+    )
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -106,13 +122,23 @@ class TeacherProfile(models.Model):
 
     employee_id = models.CharField(max_length=30, unique=True, null=True, blank=True)
     cnic = models.CharField(max_length=20, blank=True, default='')
-    designation = models.CharField(max_length=20, choices=DESIGNATION_CHOICES, default='teacher', blank=True)
+    designation = models.CharField(max_length=25, choices=DESIGNATION_CHOICES, default='teacher', blank=True)
+    employment_type = models.CharField(max_length=15, choices=EMPLOYMENT_TYPE_CHOICES, default='permanent', blank=True)
+    skill_level = models.CharField(max_length=25, choices=SKILL_LEVEL_CHOICES, default='permanent_professional', blank=True)
     subjects = models.ManyToManyField('Subject', blank=True, related_name='teachers')
     joining_date = models.DateField(null=True, blank=True)
 
     phone = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
     email = models.EmailField(blank=True, null=True)
+
+    # Salary fields
+    salary = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Basic Monthly/Daily Salary")
+    salary_type = models.CharField(max_length=10, choices=SALARY_TYPE_CHOICES, default='monthly', blank=True)
+    working_days_per_week = models.PositiveIntegerField(default=6)
+    is_employee_separated = models.BooleanField(default=False, help_text="Has the employee left?")
+    bank_account = models.CharField(max_length=50, blank=True, default='')
+    bank_name = models.CharField(max_length=100, blank=True, default='')
 
     def __str__(self):
         base = f"{self.full_name} ({self.employee_id})"

@@ -169,18 +169,26 @@
             Attendance
         </a>
 
-        <div class="nav-label">HR Module</div>
-        <a class="nav-item" href="{% url 'hr_employee_list' %}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Employees (HR)
+        <div class="nav-label">HR — Salary</div>
+        <a class="nav-item" href="{% url 'hr_salary_config' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Salary Config
+        </a>
+        <a class="nav-item" href="{% url 'hr_generate_salary' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Generate Salary
         </a>
         <a class="nav-item" href="{% url 'hr_monthly_salary_list' %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Salary Sheet
         </a>
-        <a class="nav-item" href="{% url 'hr_generate_salary' %}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Generate Salary
+        <a class="nav-item" href="{% url 'hr_salary_slip_all' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Salary Slips
+        </a>
+        <a class="nav-item" href="{% url 'hr_employee_attendance' %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Attendance
         </a>
     </nav>
 
@@ -456,29 +464,35 @@
                     <a href="{% url 'add_teacher' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">+ Add Teacher</a>
                 </div>
             </div>
-            <div class="cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+            <div class="cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;">
                 {% for teacher in teachers %}
                 <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
                     <div style="padding:18px 18px 14px;display:flex;align-items:center;gap:13px;border-bottom:1px solid #f3f4f6;">
                         <div style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0;background:#16a34a;">{{ teacher.full_name|first|upper }}</div>
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:14.5px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ teacher.full_name }}</div>
-                            <div style="font-size:11px;color:var(--text-muted);">ID: {{ teacher.employee_id|default:"Not assigned" }}</div>
+                            <div style="font-size:14.5px;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ teacher.full_name }}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">{{ teacher.employee_id|default:"No ID" }}</div>
                         </div>
                         <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;flex-shrink:0;{% if teacher.gender == 'M' %}background:#eff6ff;color:#2563eb;{% else %}background:#fdf4ff;color:#9333ea;{% endif %}">{{ teacher.get_gender_display }}</span>
                     </div>
-                    <div style="padding:12px 18px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #f3f4f6;">
-                        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);">{{ teacher.phone|default:"No phone" }}</div>
-                        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);">Joined: {{ teacher.joining_date|default:"Not set" }}</div>
+                    <div style="padding:10px 18px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text-secondary);border-bottom:1px solid #f3f4f6;">
+                        <div><span style="color:var(--text-muted);">Father:</span> {{ teacher.father_name|default:"-" }}</div>
+                        <div><span style="color:var(--text-muted);">CNIC:</span> {{ teacher.cnic|default:"-" }}</div>
+                        <div><span style="color:var(--text-muted);">Desig:</span> {{ teacher.get_designation_display|default:teacher.designation|default:"-" }}</div>
+                        <div><span style="color:var(--text-muted);">Type:</span> {{ teacher.get_employment_type_display|default:teacher.employment_type|default:"-" }}</div>
+                        <div><span style="color:var(--text-muted);">Phone:</span> {{ teacher.phone|default:"-" }}</div>
+                        <div><span style="color:var(--text-muted);">Joined:</span> {{ teacher.joining_date|default:"-" }}</div>
+                        <div><span style="color:var(--text-muted);">Salary:</span> <strong style="color:#16a34a;">Rs. {{ teacher.salary|floatformat:0 }}</strong></div>
+                        <div><span style="color:var(--text-muted);">Pay:</span> {{ teacher.get_salary_type_display|default:teacher.salary_type|default:"-" }}</div>
                     </div>
-                    <div style="padding:12px 18px;">
-                        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:8px;">Assigned Subjects</div>
+                    <div style="padding:10px 18px;">
+                        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:6px;">Assigned Subjects</div>
                         {% for ts in teacher.assignments.all %}
-                        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f9fafb;gap:8px;">
-                            <div style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ts.subject.name }}</div>
-                            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f0fdf4;color:#16a34a;flex-shrink:0;">{{ ts.assigned_class }}</span>
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f9fafb;gap:8px;">
+                            <div style="font-size:12px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ts.subject.name }}</div>
+                            <span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:20px;background:#f0fdf4;color:#16a34a;flex-shrink:0;">{{ ts.assigned_class }}</span>
                         </div>
-                        {% empty %}<div style="font-size:12px;color:var(--text-muted);padding:4px 0;">No subjects assigned.</div>{% endfor %}
+                        {% empty %}<div style="font-size:11px;color:var(--text-muted);padding:2px 0;">No subjects assigned.</div>{% endfor %}
                     </div>
                     <div style="padding:10px 18px;display:flex;gap:8px;border-top:1px solid #f3f4f6;flex-wrap:wrap;">
                         <a href="{% url 'edit_teacher' teacher.id %}" class="btn btn-yellow" style="padding:5px 12px;font-size:11.5px;">Edit</a>

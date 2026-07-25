@@ -250,7 +250,7 @@ def add_teacher(request):
             return redirect('admin_console')
     else:
         form = TeacherProfileForm(school=school)
-    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Teacher'})
+    return render(request, 'add_teacher.html', {'form': form, 'model_name': 'Teacher'})
 
 
 @login_required(login_url='admin_login')
@@ -277,7 +277,7 @@ def edit_teacher(request, pk):
             initial={'email': teacher.user.email if teacher.user else ''},
             school=get_user_school(request.user)
         )
-    return render(request, 'add_entry.html', {'form': form, 'model_name': 'Teacher', 'edit': True})
+    return render(request, 'add_teacher.html', {'form': form, 'model_name': 'Teacher', 'edit': True})
 
 
 @login_required(login_url='admin_login')

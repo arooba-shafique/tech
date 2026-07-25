@@ -5,14 +5,59 @@ import calendar
 
 
 class SalaryConfig(models.Model):
-    """Global salary configuration per school."""
+    """Global salary configuration per school — all criteria manually set."""
     school = models.OneToOneField('accounts.School', on_delete=models.CASCADE, related_name='salary_config', null=True, blank=True)
-    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Tax percentage deducted from gross salary")
+    
+    # Basic settings
+    default_working_days = models.PositiveIntegerField(default=26, help_text="Default working days per month")
+    
+    # Tax
+    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Tax % deducted from gross")
+    
+    # Allowances (percentage of basic salary)
+    housing_allowance_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Housing allowance % of basic")
+    medical_allowance_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Medical allowance % of basic")
+    transport_allowance_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Transport allowance % of basic")
+    fuel_allowance_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Fuel allowance % of basic")
+    
+    # Bonus
+    bonus_per_day = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Bonus amount per day if 0 leaves in month")
+    bonus_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Or bonus as % of basic (if per_day=0)")
+    
+    # Deductions
+    provident_fund_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="PF % of basic")
+    max_allowed_leaves = models.PositiveIntegerField(default=0, help_text="Max paid leaves per month")
+    
+    # Late deduction
+    late_deduction_per = models.PositiveIntegerField(default=3, help_text="Late days count as 1 half-day deduct")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Salary Config - {self.school}"
+
+    @property
+    def housing_allowance_amount(self):
+        """Calculate housing allowance from first employee's salary for display."""
+        return self.housing_allowance_pct
+    
+    def get_housing(self, basic):
+        return basic * (self.housing_allowance_pct / 100)
+    def get_medical(self, basic):
+        return basic * (self.medical_allowance_pct / 100)
+    def get_transport(self, basic):
+        return basic * (self.transport_allowance_pct / 100)
+    def get_fuel(self, basic):
+        return basic * (self.fuel_allowance_pct / 100)
+    def get_pf(self, basic):
+        return basic * (self.provident_fund_pct / 100)
+    def get_tax(self, gross):
+        return gross * (self.tax_percentage / 100)
+    def get_bonus(self, basic):
+        if self.bonus_per_day > 0:
+            return 0  # Will be calculated per day in monthly salary
+        return basic * (self.bonus_percentage / 100)
 
 
 class EmployeeSalary(models.Model):
@@ -120,50 +165,57 @@ class MonthlySalary(models.Model):
 
     def calculate_salary(self):
         """Auto-calculate salary based on config and attendance."""
-        emp_salary = EmployeeSalary.objects.filter(employee=self.employee).first()
-        if not emp_salary:
-            return
+        emp = self.employee
+        emp_salary_obj = EmployeeSalary.objects.filter(employee=emp).first()
+        
+        # Get basic salary from employee profile (teacher's salary field)
+        basic = emp.salary if emp.salary > 0 else (emp_salary_obj.basic_salary if emp_salary_obj else 0)
+        self.basic_salary = basic
 
-        self.basic_salary = emp_salary.basic_salary
-        self.housing_allowance = emp_salary.housing_allowance
-        self.medical_allowance = emp_salary.medical_allowance
-        self.transport_allowance = emp_salary.transport_allowance
-        self.fuel_allowance = emp_salary.fuel_allowance
-        self.other_allowance = emp_salary.other_allowance
+        # Get config
+        config = self.salary_config or SalaryConfig.objects.first()
+        if not config:
+            config = SalaryConfig.objects.create()
+
+        # Use config percentages for allowances
+        self.housing_allowance = config.get_housing(basic)
+        self.medical_allowance = config.get_medical(basic)
+        self.transport_allowance = config.get_transport(basic)
+        self.fuel_allowance = config.get_fuel(basic)
 
         # Calculate per day salary
-        if self.total_working_days > 0:
-            self.per_day_salary = self.basic_salary / self.total_working_days
+        working = self.total_working_days if self.total_working_days > 0 else config.default_working_days
+        if working > 0:
+            self.per_day_salary = basic / working
 
         # Leave deduction (absent days beyond allowed leaves)
-        excess_absent = max(0, self.days_absent - self.allowed_leaves)
+        allowed = config.max_allowed_leaves
+        excess_absent = max(0, self.days_absent - allowed)
+        self.allowed_leaves = allowed
         self.leave_deduction = excess_absent * self.per_day_salary
 
-        # Late coming deduction (e.g. half day per 3 lates)
-        self.late_coming_deduction = (self.late_coming_days // 3) * (self.per_day_salary / 2)
+        # Late coming deduction (every N lates = 1 half-day deduction)
+        lates_for_deduct = self.late_coming_days // config.late_deduction_per if config.late_deduction_per > 0 else 0
+        self.late_coming_deduction = lates_for_deduct * (self.per_day_salary / 2)
 
-        # Bonus: if no absent days (0 leaves in whole month)
+        # Bonus
         if self.days_absent == 0 and self.allowed_leaves == 0:
-            self.bonus_amount = self.bonus_per_day * self.total_working_days
+            if config.bonus_per_day > 0:
+                self.bonus_amount = config.bonus_per_day * self.total_working_days
+            else:
+                self.bonus_amount = config.get_bonus(basic)
         else:
             self.bonus_amount = 0
 
-        # Tax deduction
-        salary_config = self.salary_config or SalaryConfig.objects.first()
-        if salary_config:
-            tax_pct = salary_config.tax_percentage
-        else:
-            tax_pct = 0
-
-        total_allowances = (self.housing_allowance + self.medical_allowance +
-                          self.transport_allowance + self.fuel_allowance + self.other_allowance)
+        # Provident fund
+        self.provident_fund = config.get_pf(basic)
 
         # Gross salary
-        self.gross_salary = (self.basic_salary + self.increment + total_allowances +
-                           self.bonus_amount - self.leave_deduction - self.late_coming_deduction)
+        total_allow = self.housing_allowance + self.medical_allowance + self.transport_allowance + self.fuel_allowance + self.other_allowance
+        self.gross_salary = (basic + self.increment + total_allow + self.bonus_amount - self.leave_deduction - self.late_coming_deduction)
 
-        # Tax on gross
-        self.tax_deduction = self.gross_salary * (tax_pct / 100)
+        # Tax
+        self.tax_deduction = config.get_tax(self.gross_salary)
 
         # Total deductions
         self.total_deductions = (self.leave_deduction + self.late_coming_deduction +

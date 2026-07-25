@@ -65,15 +65,22 @@ def salary_config(request):
         config = SalaryConfig.objects.create(tax_percentage=0)
 
     if request.method == 'POST':
-        form = SalaryConfigForm(request.POST, instance=config)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Salary configuration updated.')
-            return redirect('hr_salary_config')
-    else:
-        form = SalaryConfigForm(instance=config)
+        config.default_working_days = int(request.POST.get('default_working_days', 26))
+        config.max_allowed_leaves = int(request.POST.get('max_allowed_leaves', 0))
+        config.late_deduction_per = int(request.POST.get('late_deduction_per', 3))
+        config.tax_percentage = float(request.POST.get('tax_percentage', 0))
+        config.provident_fund_pct = float(request.POST.get('provident_fund_pct', 0))
+        config.housing_allowance_pct = float(request.POST.get('housing_allowance_pct', 0))
+        config.medical_allowance_pct = float(request.POST.get('medical_allowance_pct', 0))
+        config.transport_allowance_pct = float(request.POST.get('transport_allowance_pct', 0))
+        config.fuel_allowance_pct = float(request.POST.get('fuel_allowance_pct', 0))
+        config.bonus_per_day = float(request.POST.get('bonus_per_day', 0))
+        config.bonus_percentage = float(request.POST.get('bonus_percentage', 0))
+        config.save()
+        messages.success(request, 'Salary configuration updated.')
+        return redirect('hr_salary_config')
 
-    return render(request, 'hr/salary_config.html', {'form': form, 'config': config})
+    return render(request, 'hr/salary_config.html', {'config': config, 'section': 'config'})
 
 
 # ─────────────────────────────────────────────
@@ -150,7 +157,14 @@ def generate_monthly_salary(request):
         updated_count = 0
 
         for emp in employees:
-            emp_salary, _ = EmployeeSalary.objects.get_or_create(employee=emp)
+            # Use teacher's salary from profile directly
+            emp_salary, _ = EmployeeSalary.objects.get_or_create(
+                employee=emp,
+                defaults={'basic_salary': emp.salary}
+            )
+            if emp.salary > 0 and emp_salary.basic_salary != emp.salary:
+                emp_salary.basic_salary = emp.salary
+                emp_salary.save()
 
             # Get attendance data for this month
             att_records = EmployeeAttendance.objects.filter(
@@ -172,13 +186,8 @@ def generate_monthly_salary(request):
                     'days_absent': days_absent,
                     'allowed_leaves': leave_days,
                     'late_coming_days': late_days,
-                    'basic_salary': emp_salary.basic_salary,
+                    'basic_salary': emp.salary,
                     'increment': 0,
-                    'housing_allowance': emp_salary.housing_allowance,
-                    'medical_allowance': emp_salary.medical_allowance,
-                    'transport_allowance': emp_salary.transport_allowance,
-                    'fuel_allowance': emp_salary.fuel_allowance,
-                    'other_allowance': emp_salary.other_allowance,
                     'bonus_per_day': bonus_per_day,
                 }
             )
@@ -190,12 +199,7 @@ def generate_monthly_salary(request):
                 monthly.days_absent = days_absent
                 monthly.allowed_leaves = leave_days
                 monthly.late_coming_days = late_days
-                monthly.basic_salary = emp_salary.basic_salary
-                monthly.housing_allowance = emp_salary.housing_allowance
-                monthly.medical_allowance = emp_salary.medical_allowance
-                monthly.transport_allowance = emp_salary.transport_allowance
-                monthly.fuel_allowance = emp_salary.fuel_allowance
-                monthly.other_allowance = emp_salary.other_allowance
+                monthly.basic_salary = emp.salary
                 monthly.bonus_per_day = bonus_per_day
                 monthly.salary_config = SalaryConfig.objects.first()
                 monthly.save()

@@ -42,11 +42,18 @@ class TeacherProfileForm(forms.ModelForm):
             'employee_id',
             'cnic',
             'designation',
+            'employment_type',
+            'skill_level',
             'subjects',
             'joining_date',
             'phone',
             'address',
             'email',
+            'salary',
+            'salary_type',
+            'working_days_per_week',
+            'bank_name',
+            'bank_account',
         ]
 
     def __init__(self, *args, **kwargs):

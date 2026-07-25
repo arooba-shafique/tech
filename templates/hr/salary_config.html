@@ -10,17 +10,90 @@
 
 <div class="card">
     <div class="card-header">
-        <h2>Global Tax Configuration</h2>
+        <h2>Set All Salary Criteria Manually</h2>
+        <span style="font-size:11px;color:var(--text-muted);">These settings apply to all salary generation</span>
     </div>
     <form method="post">
         {% csrf_token %}
+
+        <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);color:var(--primary);">Basic Settings</h3>
         <div class="form-row">
             <div class="form-group">
-                <label>Tax Percentage (%)</label>
-                <input type="number" name="tax_percentage" value="{{ config.tax_percentage }}" step="0.01" min="0" max="100" class="form-control">
-                <small style="color:var(--text-muted);font-size:11px;">Applied to gross salary during monthly generation</small>
+                <label>Default Working Days / Month</label>
+                <input type="number" name="default_working_days" value="{{ config.default_working_days }}" min="1" max="31" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Max Allowed Paid Leaves / Month</label>
+                <input type="number" name="max_allowed_leaves" value="{{ config.max_allowed_leaves }}" min="0" max="10" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Late Days = 1 Half-Day Deduction</label>
+                <input type="number" name="late_deduction_per" value="{{ config.late_deduction_per }}" min="1" max="10" class="form-control">
+                <small style="color:var(--text-muted);font-size:11px;">e.g. 3 lates = 1 half-day salary deducted</small>
             </div>
         </div>
+
+        <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);color:var(--primary);">Allowances (% of Basic Salary)</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Housing Allowance %</label>
+                <input type="number" name="housing_allowance_pct" value="{{ config.housing_allowance_pct }}" step="0.01" min="0" max="100" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Medical Allowance %</label>
+                <input type="number" name="medical_allowance_pct" value="{{ config.medical_allowance_pct }}" step="0.01" min="0" max="100" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Transport Allowance %</label>
+                <input type="number" name="transport_allowance_pct" value="{{ config.transport_allowance_pct }}" step="0.01" min="0" max="100" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Fuel Allowance %</label>
+                <input type="number" name="fuel_allowance_pct" value="{{ config.fuel_allowance_pct }}" step="0.01" min="0" max="100" class="form-control">
+            </div>
+        </div>
+
+        <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);color:var(--primary);">Tax & Deductions</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Tax % (on Gross Salary)</label>
+                <input type="number" name="tax_percentage" value="{{ config.tax_percentage }}" step="0.01" min="0" max="100" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Provident Fund % (of Basic)</label>
+                <input type="number" name="provident_fund_pct" value="{{ config.provident_fund_pct }}" step="0.01" min="0" max="100" class="form-control">
+            </div>
+        </div>
+
+        <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);color:var(--primary);">Bonus</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Bonus Per Day (if 0 leaves)</label>
+                <input type="number" name="bonus_per_day" value="{{ config.bonus_per_day }}" step="0.01" min="0" class="form-control">
+                <small style="color:var(--text-muted);font-size:11px;">Fixed amount per day. Set 0 to use % instead.</small>
+            </div>
+            <div class="form-group">
+                <label>Or Bonus % (of Basic)</label>
+                <input type="number" name="bonus_percentage" value="{{ config.bonus_percentage }}" step="0.01" min="0" max="100" class="form-control">
+                <small style="color:var(--text-muted);font-size:11px;">Used only if Bonus Per Day is 0</small>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:14px 18px;margin:20px 0;">
+            <div style="font-size:13px;font-weight:700;color:#0d9488;margin-bottom:8px;">How It Works</div>
+            <ul style="font-size:12px;color:#0f766e;margin-left:24px;line-height:1.8;">
+                <li><strong>Allowances</strong> = Basic Salary x Percentage / 100</li>
+                <li><strong>Per Day Salary</strong> = Basic Salary / Total Working Days</li>
+                <li><strong>Leave Deduction</strong> = (Absent - Max Allowed Leaves) x Per Day</li>
+                <li><strong>Late Deduction</strong> = Every {{ config.late_deduction_per }} lates = Half day salary</li>
+                <li><strong>Bonus</strong> = 0 absent & 0 leaves → {{ config.bonus_per_day }} per day OR {{ config.bonus_percentage }}% of basic</li>
+                <li><strong>Gross</strong> = Basic + Increment + Allowances + Bonus - Leave Ded - Late Ded</li>
+                <li><strong>Tax</strong> = Gross x {{ config.tax_percentage }}%</li>
+                <li><strong>Net</strong> = Gross - (All Deductions)</li>
+            </ul>
+        </div>
+
         <button type="submit" class="btn btn-primary">Save Configuration</button>
     </form>
 </div>
