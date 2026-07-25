@@ -1,0 +1,27 @@
+{% extends "hr/base_hr.html" %}
+
+{% block content %}
+<div class="hr-topbar">
+    <div>
+        <h1>Salary Configuration</h1>
+        <div class="breadcrumb">HR Module / Salary Config</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Global Tax Configuration</h2>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="form-group">
+                <label>Tax Percentage (%)</label>
+                <input type="number" name="tax_percentage" value="{{ config.tax_percentage }}" step="0.01" min="0" max="100" class="form-control">
+                <small style="color:var(--text-muted);font-size:11px;">Applied to gross salary during monthly generation</small>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Configuration</button>
+    </form>
+</div>
+{% endblock %}

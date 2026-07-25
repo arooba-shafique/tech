@@ -1,0 +1,106 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Slips - {{ month_name }} {{ year }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Plus Jakarta Sans',sans-serif; background:#fff; color:#1a1d23; padding:20px; }
+        .no-print { text-align:center; margin-bottom:20px; }
+        .no-print button { padding:10px 24px; background:#0d9488; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+        .slip { max-width:700px; margin:0 auto 30px; border:2px solid #e5e7eb; border-radius:12px; overflow:hidden; page-break-after:always; }
+        .header { background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; text-align:center; padding:20px 16px 14px; }
+        .header h1 { font-size:17px; font-weight:700; }
+        .header p { font-size:11px; opacity:.85; }
+        .section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #e5e7eb; }
+        .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px 20px; border-bottom:1px solid #e5e7eb; }
+        .info-item { font-size:11px; }
+        .info-item span { color:#6b7280; }
+        .att-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; padding:10px 20px; border-bottom:1px solid #e5e7eb; }
+        .att-box { text-align:center; padding:6px 4px; border-radius:6px; background:#f8fafc; }
+        .att-box .num { font-size:16px; font-weight:700; }
+        .att-box .lbl { font-size:8px; color:#9ca3af; text-transform:uppercase; }
+        .calc-grid { display:grid; grid-template-columns:1fr 1fr; }
+        .calc-col { padding:12px 20px; }
+        .calc-col:first-child { border-right:1px solid #e5e7eb; }
+        .calc-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; }
+        .calc-row.total { border-top:1.5px solid #e5e7eb; margin-top:4px; padding-top:6px; font-weight:700; font-size:12px; }
+        .net-box { background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; text-align:center; padding:14px; }
+        .net-box .label { font-size:10px; text-transform:uppercase; letter-spacing:1px; opacity:.85; }
+        .net-box .amount { font-size:24px; font-weight:700; margin-top:2px; }
+        .footer { padding:10px 20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; text-align:center; font-size:10px; color:#6b7280; border-top:1px solid #e5e7eb; }
+        .footer-line { margin-top:24px; border-top:1.5px solid #1a1d23; width:100px; display:inline-block; }
+        .amount { font-family:'Courier New',monospace; font-weight:600; }
+        @media print { body { padding:0; } .no-print { display:none; } .slip { border:none; margin-bottom:0; } }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()">Print All Salary Slips</button>
+        <p style="font-size:11px;color:#9ca3af;margin-top:6px;">This will print all {{ salaries|length }} salary slips</p>
+    </div>
+
+    {% for salary in salaries %}
+    {% with employee=salary.employee month_name=month_name %}
+    <div class="slip">
+        <div class="header">
+            <h1>ROYAL INTERNATIONAL SCHOOL SYSTEM</h1>
+            <p>Salary Slip for {{ month_name }} {{ year }}</p>
+        </div>
+        <div class="info-grid">
+            <div class="info-item"><span>Name:</span> <strong>{{ employee.full_name }}</strong></div>
+            <div class="info-item"><span>ID:</span> <strong>{{ employee.employee_id|default:"-" }}</strong></div>
+            <div class="info-item"><span>Designation:</span> <strong>{{ employee.designation|default:"-" }}</strong></div>
+            <div class="info-item"><span>Status:</span> <strong>{{ salary.get_pay_status_display|upper }}</strong></div>
+        </div>
+        <div class="att-grid">
+            <div class="att-box"><div class="num" style="color:#16a34a;">{{ salary.days_present }}</div><div class="lbl">Present</div></div>
+            <div class="att-box"><div class="num" style="color:#dc2626;">{{ salary.days_absent }}</div><div class="lbl">Absent</div></div>
+            <div class="att-box"><div class="num" style="color:#d97706;">{{ salary.allowed_leaves }}</div><div class="lbl">Leaves</div></div>
+            <div class="att-box"><div class="num" style="color:#2563eb;">{{ salary.late_coming_days }}</div><div class="lbl">Late</div></div>
+            <div class="att-box"><div class="num" style="color:#9333ea;">{{ salary.total_working_days }}</div><div class="lbl">Total</div></div>
+        </div>
+        <div class="calc-grid">
+            <div class="calc-col">
+                <div class="section-title" style="color:#16a34a;">Earnings</div>
+                <div class="calc-row"><span>Basic</span><span class="amount">Rs. {{ salary.basic_salary|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Increment</span><span class="amount">Rs. {{ salary.increment|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Housing</span><span class="amount">Rs. {{ salary.housing_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Medical</span><span class="amount">Rs. {{ salary.medical_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Transport</span><span class="amount">Rs. {{ salary.transport_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Fuel</span><span class="amount">Rs. {{ salary.fuel_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Other Allow.</span><span class="amount">Rs. {{ salary.other_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Bonus</span><span class="amount" style="color:#16a34a;">Rs. {{ salary.bonus_amount|floatformat:0 }}</span></div>
+                <div class="calc-row total"><span>Gross</span><span class="amount">Rs. {{ salary.gross_salary|floatformat:0 }}</span></div>
+            </div>
+            <div class="calc-col">
+                <div class="section-title" style="color:#dc2626;">Deductions</div>
+                <div class="calc-row"><span>Leave Ded.</span><span class="amount">Rs. {{ salary.leave_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Late Ded.</span><span class="amount">Rs. {{ salary.late_coming_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Advance</span><span class="amount">Rs. {{ salary.advance_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>P. Fund</span><span class="amount">Rs. {{ salary.provident_fund|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Security</span><span class="amount">Rs. {{ salary.security_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Tax</span><span class="amount">Rs. {{ salary.tax_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Other Ded.</span><span class="amount">Rs. {{ salary.other_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row total" style="color:#dc2626;"><span>Total Ded.</span><span class="amount">Rs. {{ salary.total_deductions|floatformat:0 }}</span></div>
+            </div>
+        </div>
+        <div class="net-box">
+            <div class="label">Net Salary Payable</div>
+            <div class="amount">Rs. {{ salary.net_salary|floatformat:0 }}</div>
+        </div>
+        <div class="footer">
+            <div><div class="footer-line"></div><br>Accountant</div>
+            <div><div class="footer-line"></div><br>V. Principal</div>
+            <div><div class="footer-line"></div><br>C.E.O</div>
+        </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div style="text-align:center;padding:40px;color:#9ca3af;">No salary records found for {{ month_name }} {{ year }}.</div>
+    {% endfor %}
+</body>
+</html>

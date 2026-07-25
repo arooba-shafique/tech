@@ -1,0 +1,77 @@
+{% extends "hr/base_hr.html" %}
+
+{% block content %}
+<div class="hr-topbar">
+    <div>
+        <h1>Employee Attendance</h1>
+        <div class="breadcrumb">HR Module / Attendance</div>
+    </div>
+</div>
+
+<!-- Date filter -->
+<div class="card" style="padding:14px 20px;">
+    <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+        <div class="form-group" style="margin:0;">
+            <label>Select Date</label>
+            <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Load</button>
+    </form>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        <div class="card-header">
+            <h2>Attendance for {{ selected_date|date:"d M Y" }}</h2>
+            <button type="submit" class="btn btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Attendance
+            </button>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sr#</th>
+                        <th>Employee Name</th>
+                        <th>Designation</th>
+                        <th>Status</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                    {% with emp_att=existing|dictsort:"employee_id" %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <div style="font-weight:600;">{{ emp.full_name }}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">{{ emp.employee_id|default:"-" }}</div>
+                        </td>
+                        <td>{{ emp.designation|default:"-" }}</td>
+                        <td>
+                            <select name="status_{{ emp.id }}" class="form-control" style="min-width:120px;">
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                                <option value="leave">Leave</option>
+                                <option value="half_day">Half Day</option>
+                                <option value="late">Late</option>
+                            </select>
+                        </td>
+                        <td><input type="time" name="check_in_{{ emp.id }}" class="form-control" style="min-width:110px;"></td>
+                        <td><input type="time" name="check_out_{{ emp.id }}" class="form-control" style="min-width:110px;"></td>
+                        <td><input type="text" name="remarks_{{ emp.id }}" class="form-control" placeholder="Optional" style="min-width:120px;"></td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">No employees found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+{% endblock %}

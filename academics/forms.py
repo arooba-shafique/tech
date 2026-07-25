@@ -35,10 +35,13 @@ class TeacherProfileForm(forms.ModelForm):
         model = TeacherProfile
         fields = [
             'full_name',
+            'father_name',
             'date_of_birth',
             'gender',
             'profile_picture',
             'employee_id',
+            'cnic',
+            'designation',
             'subjects',
             'joining_date',
             'phone',

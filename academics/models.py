@@ -80,6 +80,13 @@ class TeacherProfile(models.Model):
         ('M', 'Male'),
         ('F', 'Female'),
     )
+    DESIGNATION_CHOICES = (
+        ('teacher', 'Teacher'),
+        ('coordinator', 'Coordinator'),
+        ('manager', 'Manager'),
+        ('vp', 'VP'),
+        ('group_head', 'Group Head'),
+    )
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -92,11 +99,14 @@ class TeacherProfile(models.Model):
     )
 
     full_name = models.CharField(max_length=100)
+    father_name = models.CharField(max_length=100, blank=True, default='')
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, default='M')
     profile_picture = models.ImageField(upload_to='teachers/pictures/', null=True, blank=True)
 
     employee_id = models.CharField(max_length=30, unique=True, null=True, blank=True)
+    cnic = models.CharField(max_length=20, blank=True, default='')
+    designation = models.CharField(max_length=20, choices=DESIGNATION_CHOICES, default='teacher', blank=True)
     subjects = models.ManyToManyField('Subject', blank=True, related_name='teachers')
     joining_date = models.DateField(null=True, blank=True)
 

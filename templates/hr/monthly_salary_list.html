@@ -1,0 +1,146 @@
+{% extends "hr/base_hr.html" %}
+
+{% block content %}
+<div class="hr-topbar">
+    <div>
+        <h1>Salary Sheet — {{ month_name }} {{ year }}</h1>
+        <div class="breadcrumb">HR Module / Salary Sheet</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'hr_salary_slip_all' %}?month={{ month }}&year={{ year }}" class="btn btn-primary" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Print All Slips
+        </a>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card" style="padding:14px 20px;">
+    <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+        <div class="form-group" style="margin:0;">
+            <label>Month</label>
+            <select name="month" class="form-control" style="min-width:140px;">
+                {% for m in "123456789" %}
+                {% endfor %}
+                <option value="1" {% if month == 1 %}selected{% endif %}>January</option>
+                <option value="2" {% if month == 2 %}selected{% endif %}>February</option>
+                <option value="3" {% if month == 3 %}selected{% endif %}>March</option>
+                <option value="4" {% if month == 4 %}selected{% endif %}>April</option>
+                <option value="5" {% if month == 5 %}selected{% endif %}>May</option>
+                <option value="6" {% if month == 6 %}selected{% endif %}>June</option>
+                <option value="7" {% if month == 7 %}selected{% endif %}>July</option>
+                <option value="8" {% if month == 8 %}selected{% endif %}>August</option>
+                <option value="9" {% if month == 9 %}selected{% endif %}>September</option>
+                <option value="10" {% if month == 10 %}selected{% endif %}>October</option>
+                <option value="11" {% if month == 11 %}selected{% endif %}>November</option>
+                <option value="12" {% if month == 12 %}selected{% endif %}>December</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+            <label>Year</label>
+            <input type="number" name="year" value="{{ year }}" min="2020" max="2030" class="form-control" style="min-width:100px;">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    </form>
+</div>
+
+<!-- Summary Stats -->
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#f0fdf4;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="stat-info"><p>Total Gross</p><h3 class="amount">Rs. {{ total_gross|floatformat:0 }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fef2f2;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+        <div class="stat-info"><p>Total Deductions</p><h3 class="amount">Rs. {{ total_deductions|floatformat:0 }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#eff6ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="stat-info"><p>Net Salary Payable</p><h3 class="amount">Rs. {{ total_net|floatformat:0 }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fffbeb;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div class="stat-info"><p>Employees</p><h3>{{ salaries|length }}</h3></div>
+    </div>
+</div>
+
+<!-- Salary Sheet Table -->
+<div class="card">
+    <div class="table-scroll">
+        <table style="min-width:1200px;">
+            <thead>
+                <tr>
+                    <th>Sr#</th>
+                    <th>Emp. Name</th>
+                    <th>Designation</th>
+                    <th>Basic</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Leave</th>
+                    <th>Late</th>
+                    <th>Per Day</th>
+                    <th>Allow.</th>
+                    <th>Gross</th>
+                    <th>Deductions</th>
+                    <th>Net Payable</th>
+                    <th>Status</th>
+                    <th style="text-align:center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in salaries %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div style="font-weight:600;font-size:13px;">{{ s.employee.full_name }}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">{{ s.employee.employee_id|default:"-" }}</div>
+                    </td>
+                    <td>{{ s.employee.designation|default:"-" }}</td>
+                    <td class="amount">{{ s.basic_salary|floatformat:0 }}</td>
+                    <td><span class="badge badge-green">{{ s.days_present }}</span></td>
+                    <td><span class="badge badge-red">{{ s.days_absent }}</span></td>
+                    <td><span class="badge badge-yellow">{{ s.allowed_leaves }}</span></td>
+                    <td>{{ s.late_coming_days }}</td>
+                    <td class="amount">{{ s.per_day_salary|floatformat:2 }}</td>
+                    <td class="amount">{{ s.total_allowances|floatformat:0|default:"-" }}</td>
+                    <td class="amount" style="font-weight:700;">{{ s.gross_salary|floatformat:0 }}</td>
+                    <td class="amount" style="color:var(--red);">{{ s.total_deductions|floatformat:0 }}</td>
+                    <td class="amount" style="font-weight:700;color:var(--green);">{{ s.net_salary|floatformat:0 }}</td>
+                    <td>
+                        {% if s.pay_status == 'paid' %}
+                        <span class="badge badge-green">Paid</span>
+                        {% elif s.pay_status == 'partial' %}
+                        <span class="badge badge-yellow">Partial</span>
+                        {% else %}
+                        <span class="badge badge-red">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;white-space:nowrap;">
+                        <a href="{% url 'hr_edit_monthly_salary' s.pk %}" class="btn btn-warning btn-sm">Edit</a>
+                        <a href="{% url 'hr_salary_slip' s.pk %}" class="btn btn-primary btn-sm" target="_blank">Slip</a>
+                        <a href="{% url 'hr_salary_slip_pdf' s.pk %}" class="btn btn-success btn-sm" target="_blank">PDF</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="15" style="text-align:center;padding:40px;color:var(--text-muted);">
+                    No salary records found for {{ month_name }} {{ year }}. <a href="{% url 'hr_generate_salary' %}">Generate Salary</a>
+                </td></tr>
+                {% endfor %}
+            </tbody>
+            {% if salaries %}
+            <tfoot>
+                <tr style="font-weight:700;background:#f9fafb;">
+                    <td colspan="3" style="text-align:right;">Total</td>
+                    <td class="amount">{{ total_basic|floatformat:0|default:"-" }}</td>
+                    <td colspan="6"></td>
+                    <td class="amount" style="font-weight:700;">{{ total_gross|floatformat:0 }}</td>
+                    <td class="amount" style="color:var(--red);">{{ total_deductions|floatformat:0 }}</td>
+                    <td class="amount" style="font-weight:700;color:var(--green);">{{ total_net|floatformat:0 }}</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}

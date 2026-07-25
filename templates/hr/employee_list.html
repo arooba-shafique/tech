@@ -1,0 +1,72 @@
+{% extends "hr/base_hr.html" %}
+
+{% block content %}
+<div class="hr-topbar">
+    <div>
+        <h1>Employees</h1>
+        <div class="breadcrumb">HR Module / Employees</div>
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#eff6ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="stat-info"><p>Total Employees</p><h3>{{ employees|length }}</h3></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Employee Master Data</h2>
+    </div>
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Sr. #</th>
+                    <th>Employee Name</th>
+                    <th>Father Name</th>
+                    <th>CNIC</th>
+                    <th>Designation</th>
+                    <th>Employment Type</th>
+                    <th>Salary Type</th>
+                    <th>Working Days</th>
+                    <th>Basic Salary</th>
+                    <th>Mobile</th>
+                    <th>Gender</th>
+                    <th style="text-align:center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div style="font-weight:600;">{{ emp.full_name }}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">ID: {{ emp.employee_id|default:"-" }}</div>
+                    </td>
+                    <td>{{ emp.father_name|default:"-" }}</td>
+                    <td>{{ emp.cnic|default:"-" }}</td>
+                    <td>{{ emp.get_designation_display|default:emp.designation|default:"-" }}</td>
+                    <td><span class="badge badge-blue">{{ emp.employment_type }}</span></td>
+                    <td><span class="badge badge-green">{{ emp.salary_type }}</span></td>
+                    <td>{{ emp.working_days }}</td>
+                    <td class="amount">Rs. {{ emp.basic_salary|floatformat:0 }}</td>
+                    <td>{{ emp.phone|default:"-" }}</td>
+                    <td>{{ emp.get_gender_display }}</td>
+                    <td style="text-align:center;white-space:nowrap;">
+                        {% if emp.basic_salary %}
+                        <a href="{% url 'hr_edit_employee_salary' emp.id %}" class="btn btn-warning btn-sm">Edit Salary</a>
+                        {% else %}
+                        <a href="{% url 'hr_add_employee_salary' emp.id %}" class="btn btn-primary btn-sm">Set Salary</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted);">No employees found. Add teachers first from the main admin panel.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
