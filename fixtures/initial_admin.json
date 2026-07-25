@@ -20,6 +20,25 @@
 },
 {
   "model": "accounts.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$GcuK30pwkkDFFNPf6ApQdd$h/7KCx81UUG5cUWI1MV/B1f+PtwPUwpSbFKetkq+Cl8=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-07-25T20:00:00.000Z",
+    "role": "admin",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
   "pk": 2,
   "fields": {
     "password": "pbkdf2_sha256$1200000$Qnu2tx7SC5s6ZD0MBb4G8B$pbRMs+5tP25nrB8JdfR+Q8c6P8EKUn8XuvBQ2UBTwqs=",
