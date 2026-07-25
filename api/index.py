@@ -14,10 +14,11 @@ django.setup()
 from django.core.wsgi import get_wsgi_application
 from django.contrib.staticfiles.handlers import StaticFilesHandler
 
-# Run migrations on cold start
-def run_migrations():
-    """Run migrations and load fixtures on cold start"""
+# Run migrations and create superuser on cold start
+def setup_database():
+    """Run migrations and create superuser on cold start"""
     from django.core.management import call_command
+    from django.contrib.auth import get_user_model
     
     try:
         print("Running migrations...")
@@ -25,9 +26,28 @@ def run_migrations():
         print("Migrations completed.")
     except Exception as e:
         print(f"Migration error: {e}")
+    
+    # Create superuser if it doesn't exist
+    try:
+        User = get_user_model()
+        if not User.objects.filter(username='admin').exists():
+            print("Creating admin superuser...")
+            User.objects.create_superuser(
+                username='admin',
+                email='admin@example.com',
+                password='admin123',
+                role='admin',
+                is_staff=True,
+                is_superuser=True
+            )
+            print("Admin superuser created.")
+        else:
+            print("Admin superuser already exists.")
+    except Exception as e:
+        print(f"Error creating superuser: {e}")
 
-# Run migrations on import (cold start)
-run_migrations()
+# Run setup on import (cold start)
+setup_database()
 
 # Get the WSGI application
 application = StaticFilesHandler(get_wsgi_application())
