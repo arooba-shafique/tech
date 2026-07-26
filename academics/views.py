@@ -51,12 +51,17 @@ def admin_dashboard(request):
     school = get_user_school(request.user)
     today = timezone.now().date()
 
+    from django.db.models import Q
+
     school_filter = {}
     if not request.user.is_superuser and school:
         school_filter = {'school': school}
 
     students_qs = StudentProfile.objects.filter(**school_filter)
-    teachers_qs = TeacherProfile.objects.filter(**school_filter)
+    if not request.user.is_superuser and school:
+        teachers_qs = TeacherProfile.objects.filter(Q(school=school) | Q(school__isnull=True))
+    else:
+        teachers_qs = TeacherProfile.objects.all()
     parents_qs = ParentProfile.objects.filter(**school_filter)
     classes_qs = Class.objects.filter(**school_filter)
     subjects_qs = Subject.objects.filter(**school_filter)
