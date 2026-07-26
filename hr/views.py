@@ -80,7 +80,7 @@ def salary_config(request):
         messages.success(request, 'Salary configuration updated.')
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'status': 'ok'})
-        return redirect('admin_dashboard')
+        return redirect('admin_console')
 
     return render(request, 'hr/salary_config.html', {'config': config, 'section': 'config'})
 
