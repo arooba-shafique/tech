@@ -66,31 +66,31 @@
         <div class="calc-grid">
             <div class="calc-col">
                 <div class="section-title" style="color:#16a34a;">Earnings</div>
-                <div class="calc-row"><span>Basic</span><span class="amount">Rs. {{ salary.basic_salary|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Increment</span><span class="amount">Rs. {{ salary.increment|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Housing</span><span class="amount">Rs. {{ salary.housing_allowance|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Medical</span><span class="amount">Rs. {{ salary.medical_allowance|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Transport</span><span class="amount">Rs. {{ salary.transport_allowance|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Fuel</span><span class="amount">Rs. {{ salary.fuel_allowance|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Other Allow.</span><span class="amount">Rs. {{ salary.other_allowance|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Bonus</span><span class="amount" style="color:#16a34a;">Rs. {{ salary.bonus_amount|floatformat:0 }}</span></div>
-                <div class="calc-row total"><span>Gross</span><span class="amount">Rs. {{ salary.gross_salary|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Basic</span><span class="amount">PKR {{ salary.basic_salary|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Increment</span><span class="amount">PKR {{ salary.increment|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Housing</span><span class="amount">PKR {{ salary.housing_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Medical</span><span class="amount">PKR {{ salary.medical_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Transport</span><span class="amount">PKR {{ salary.transport_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Fuel</span><span class="amount">PKR {{ salary.fuel_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Other Allow.</span><span class="amount">PKR {{ salary.other_allowance|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Bonus</span><span class="amount" style="color:#16a34a;">PKR {{ salary.bonus_amount|floatformat:0 }}</span></div>
+                <div class="calc-row total"><span>Gross</span><span class="amount">PKR {{ salary.gross_salary|floatformat:0 }}</span></div>
             </div>
             <div class="calc-col">
                 <div class="section-title" style="color:#dc2626;">Deductions</div>
-                <div class="calc-row"><span>Leave Ded.</span><span class="amount">Rs. {{ salary.leave_deduction|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Late Ded.</span><span class="amount">Rs. {{ salary.late_coming_deduction|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Advance</span><span class="amount">Rs. {{ salary.advance_deduction|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>P. Fund</span><span class="amount">Rs. {{ salary.provident_fund|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Security</span><span class="amount">Rs. {{ salary.security_deduction|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Tax</span><span class="amount">Rs. {{ salary.tax_deduction|floatformat:0 }}</span></div>
-                <div class="calc-row"><span>Other Ded.</span><span class="amount">Rs. {{ salary.other_deduction|floatformat:0 }}</span></div>
-                <div class="calc-row total" style="color:#dc2626;"><span>Total Ded.</span><span class="amount">Rs. {{ salary.total_deductions|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Leave Ded.</span><span class="amount">PKR {{ salary.leave_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Late Ded.</span><span class="amount">PKR {{ salary.late_coming_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Advance</span><span class="amount">PKR {{ salary.advance_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>P. Fund</span><span class="amount">PKR {{ salary.provident_fund|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Security</span><span class="amount">PKR {{ salary.security_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Tax</span><span class="amount">PKR {{ salary.tax_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row"><span>Other Ded.</span><span class="amount">PKR {{ salary.other_deduction|floatformat:0 }}</span></div>
+                <div class="calc-row total" style="color:#dc2626;"><span>Total Ded.</span><span class="amount">PKR {{ salary.total_deductions|floatformat:0 }}</span></div>
             </div>
         </div>
         <div class="net-box">
             <div class="label">Net Salary Payable</div>
-            <div class="amount">Rs. {{ salary.net_salary|floatformat:0 }}</div>
+            <div class="amount">PKR {{ salary.net_salary|floatformat:0 }}</div>
         </div>
         <div class="footer">
             <div><div class="footer-line"></div><br>Accountant</div>

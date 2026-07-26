@@ -1,17 +1,39 @@
-{% extends "hr/base_hr.html" %}
-
-{% block content %}
-<div class="hr-topbar">
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Slip - {{ employee.full_name }} - {{ month_name }} {{ salary.year }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Plus Jakarta Sans',sans-serif; background:#f1f5f9; color:#1a1d23; padding:20px; }
+        .topbar { text-align:center; margin-bottom:20px; }
+        .topbar h1 { font-size:18px; font-weight:700; color:#1a1d23; }
+        .topbar .breadcrumb { font-size:12px; color:#6b7280; }
+        .topbar .actions { margin-top:10px; display:flex; gap:8px; justify-content:center; }
+        .topbar .actions a { padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; }
+        .btn-primary { background:#0d9488; color:#fff; border:none; }
+        .btn-primary:hover { background:#0f766e; }
+        .btn-ghost { background:#fff; color:#1a1d23; border:1px solid #e5e7eb; }
+        .btn-ghost:hover { background:#f9fafb; }
+        .btn-success { background:#16a34a; color:#fff; border:none; }
+        .btn-success:hover { background:#15803d; }
+        .card { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,.06); padding:24px; }
+        :root { --primary:#0d9488; --green:#16a34a; --red:#dc2626; --border:#e5e7eb; --text-muted:#6b7280; --text-secondary:#4b5563; }
+    </style>
+</head>
+<body>
+<div class="topbar">
     <div>
         <h1>Salary Slip — {{ employee.full_name }}</h1>
         <div class="breadcrumb">HR Module / Salary Sheet / Slip</div>
     </div>
-    <div style="display:flex;gap:8px;">
-        <a href="{% url 'hr_salary_slip_pdf' salary.pk %}" class="btn btn-success" target="_blank">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download PDF
-        </a>
-        <a href="{% url 'hr_monthly_salary_list' %}?month={{ salary.month }}&year={{ salary.year }}" class="btn btn-ghost">Back to Sheet</a>
+    <div class="actions">
+        <a href="{% url 'hr_salary_slip_pdf' salary.pk %}" class="btn-success" target="_blank">Download PDF</a>
+        <a href="javascript:window.print();" class="btn-primary">Print</a>
+        <a href="{% url 'admin_console' %}" class="btn-ghost">Back to Dashboard</a>
     </div>
 </div>
 
@@ -69,28 +91,28 @@
         <div>
             <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--green);">Earnings</h3>
             <div style="display:flex;flex-direction:column;gap:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Basic Salary</span><span class="amount">Rs. {{ salary.basic_salary|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Increment</span><span class="amount">Rs. {{ salary.increment|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Housing Allowance</span><span class="amount">Rs. {{ salary.housing_allowance|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Medical Allowance</span><span class="amount">Rs. {{ salary.medical_allowance|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Transport Allowance</span><span class="amount">Rs. {{ salary.transport_allowance|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Fuel Allowance</span><span class="amount">Rs. {{ salary.fuel_allowance|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Other Allowance</span><span class="amount">Rs. {{ salary.other_allowance|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Bonus (0 Leave)</span><span class="amount" style="color:var(--green);">Rs. {{ salary.bonus_amount|floatformat:0 }}</span></div>
-                <div style="border-top:1px solid var(--border);padding-top:6px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>Gross Salary</span><span class="amount">Rs. {{ salary.gross_salary|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Basic Salary</span><span class="amount">PKR {{ salary.basic_salary|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Increment</span><span class="amount">PKR {{ salary.increment|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Housing Allowance</span><span class="amount">PKR {{ salary.housing_allowance|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Medical Allowance</span><span class="amount">PKR {{ salary.medical_allowance|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Transport Allowance</span><span class="amount">PKR {{ salary.transport_allowance|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Fuel Allowance</span><span class="amount">PKR {{ salary.fuel_allowance|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Other Allowance</span><span class="amount">PKR {{ salary.other_allowance|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Bonus (0 Leave)</span><span class="amount" style="color:var(--green);">PKR {{ salary.bonus_amount|floatformat:0 }}</span></div>
+                <div style="border-top:1px solid var(--border);padding-top:6px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>Gross Salary</span><span class="amount">PKR {{ salary.gross_salary|floatformat:0 }}</span></div>
             </div>
         </div>
         <div>
             <h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--red);">Deductions</h3>
             <div style="display:flex;flex-direction:column;gap:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Leave Deduction</span><span class="amount">Rs. {{ salary.leave_deduction|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Late Coming Deduction</span><span class="amount">Rs. {{ salary.late_coming_deduction|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Advance Deduction</span><span class="amount">Rs. {{ salary.advance_deduction|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Provident Fund</span><span class="amount">Rs. {{ salary.provident_fund|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Security Deduction</span><span class="amount">Rs. {{ salary.security_deduction|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Tax Deduction</span><span class="amount">Rs. {{ salary.tax_deduction|floatformat:0 }}</span></div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Other Deduction</span><span class="amount">Rs. {{ salary.other_deduction|floatformat:0 }}</span></div>
-                <div style="border-top:1px solid var(--border);padding-top:6px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>Total Deductions</span><span class="amount" style="color:var(--red);">Rs. {{ salary.total_deductions|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Leave Deduction</span><span class="amount">PKR {{ salary.leave_deduction|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Late Coming Deduction</span><span class="amount">PKR {{ salary.late_coming_deduction|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Advance Deduction</span><span class="amount">PKR {{ salary.advance_deduction|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Provident Fund</span><span class="amount">PKR {{ salary.provident_fund|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Security Deduction</span><span class="amount">PKR {{ salary.security_deduction|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Tax Deduction</span><span class="amount">PKR {{ salary.tax_deduction|floatformat:0 }}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Other Deduction</span><span class="amount">PKR {{ salary.other_deduction|floatformat:0 }}</span></div>
+                <div style="border-top:1px solid var(--border);padding-top:6px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>Total Deductions</span><span class="amount" style="color:var(--red);">PKR {{ salary.total_deductions|floatformat:0 }}</span></div>
             </div>
         </div>
     </div>
@@ -98,7 +120,8 @@
     <!-- Net Salary -->
     <div style="background:var(--primary);color:#fff;border-radius:10px;padding:16px 20px;text-align:center;">
         <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Net Salary Payable</div>
-        <div style="font-size:28px;font-weight:700;">Rs. {{ salary.net_salary|floatformat:0 }}</div>
+        <div style="font-size:28px;font-weight:700;">PKR {{ salary.net_salary|floatformat:0 }}</div>
     </div>
 </div>
-{% endblock %}
+</body>
+</html>

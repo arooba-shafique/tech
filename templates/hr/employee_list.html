@@ -51,7 +51,7 @@
                     <td><span class="badge badge-blue">{{ emp.employment_type }}</span></td>
                     <td><span class="badge badge-green">{{ emp.salary_type }}</span></td>
                     <td>{{ emp.working_days }}</td>
-                    <td class="amount">Rs. {{ emp.basic_salary|floatformat:0 }}</td>
+                    <td class="amount">PKR {{ emp.basic_salary|floatformat:0 }}</td>
                     <td>{{ emp.phone|default:"-" }}</td>
                     <td>{{ emp.get_gender_display }}</td>
                     <td style="text-align:center;white-space:nowrap;">

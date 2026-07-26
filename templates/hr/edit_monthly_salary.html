@@ -47,11 +47,11 @@
         <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;">Earnings</h3>
         <div class="form-row">
             <div class="form-group">
-                <label>Increment (Rs.)</label>
+                <label>Increment (PKR)</label>
                 <input type="number" name="increment" value="{{ salary.increment }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Bonus Per Day (Rs.)</label>
+                <label>Bonus Per Day (PKR)</label>
                 <input type="number" name="bonus_per_day" value="{{ salary.bonus_per_day }}" step="0.01" class="form-control">
             </div>
         </div>
@@ -59,19 +59,19 @@
         <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;">Deductions</h3>
         <div class="form-row">
             <div class="form-group">
-                <label>Advance Deduction (Rs.)</label>
+                <label>Advance Deduction (PKR)</label>
                 <input type="number" name="advance_deduction" value="{{ salary.advance_deduction }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Provident Fund (Rs.)</label>
+                <label>Provident Fund (PKR)</label>
                 <input type="number" name="provident_fund" value="{{ salary.provident_fund }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Security Deduction (Rs.)</label>
+                <label>Security Deduction (PKR)</label>
                 <input type="number" name="security_deduction" value="{{ salary.security_deduction }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Other Deduction (Rs.)</label>
+                <label>Other Deduction (PKR)</label>
                 <input type="number" name="other_deduction" value="{{ salary.other_deduction }}" step="0.01" class="form-control">
             </div>
         </div>
@@ -96,14 +96,14 @@
         <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:14px 18px;margin:20px 0;">
             <div style="font-size:13px;font-weight:700;color:#0d9488;margin-bottom:8px;">Auto-Calculated Summary (saves on submit)</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;font-size:12px;">
-                <div>Per Day: <strong>Rs. {{ salary.per_day_salary|floatformat:2 }}</strong></div>
-                <div>Leave Ded: <strong style="color:var(--red);">Rs. {{ salary.leave_deduction|floatformat:0 }}</strong></div>
-                <div>Late Ded: <strong style="color:var(--red);">Rs. {{ salary.late_coming_deduction|floatformat:0 }}</strong></div>
-                <div>Tax Ded: <strong style="color:var(--red);">Rs. {{ salary.tax_deduction|floatformat:0 }}</strong></div>
-                <div>Bonus: <strong style="color:var(--green);">Rs. {{ salary.bonus_amount|floatformat:0 }}</strong></div>
-                <div>Gross: <strong>Rs. {{ salary.gross_salary|floatformat:0 }}</strong></div>
-                <div>Total Ded: <strong style="color:var(--red);">Rs. {{ salary.total_deductions|floatformat:0 }}</strong></div>
-                <div style="font-size:14px;">Net: <strong style="color:var(--green);">Rs. {{ salary.net_salary|floatformat:0 }}</strong></div>
+                <div>Per Day: <strong>PKR {{ salary.per_day_salary|floatformat:2 }}</strong></div>
+                <div>Leave Ded: <strong style="color:var(--red);">PKR {{ salary.leave_deduction|floatformat:0 }}</strong></div>
+                <div>Late Ded: <strong style="color:var(--red);">PKR {{ salary.late_coming_deduction|floatformat:0 }}</strong></div>
+                <div>Tax Ded: <strong style="color:var(--red);">PKR {{ salary.tax_deduction|floatformat:0 }}</strong></div>
+                <div>Bonus: <strong style="color:var(--green);">PKR {{ salary.bonus_amount|floatformat:0 }}</strong></div>
+                <div>Gross: <strong>PKR {{ salary.gross_salary|floatformat:0 }}</strong></div>
+                <div>Total Ded: <strong style="color:var(--red);">PKR {{ salary.total_deductions|floatformat:0 }}</strong></div>
+                <div style="font-size:14px;">Net: <strong style="color:var(--green);">PKR {{ salary.net_salary|floatformat:0 }}</strong></div>
             </div>
         </div>
 

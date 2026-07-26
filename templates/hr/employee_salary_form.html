@@ -13,7 +13,7 @@
         {% csrf_token %}
         <div class="form-row">
             <div class="form-group">
-                <label>Basic Salary (Rs.)</label>
+                <label>Basic Salary (PKR)</label>
                 <input type="number" name="basic_salary" value="{{ form.basic_salary.value|default:'0' }}" step="0.01" class="form-control" required>
             </div>
             <div class="form-group">
@@ -40,23 +40,23 @@
         <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Allowances</h3>
         <div class="form-row">
             <div class="form-group">
-                <label>Housing Allowance (Rs.)</label>
+                <label>Housing Allowance (PKR)</label>
                 <input type="number" name="housing_allowance" value="{{ form.housing_allowance.value|default:'0' }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Medical Allowance (Rs.)</label>
+                <label>Medical Allowance (PKR)</label>
                 <input type="number" name="medical_allowance" value="{{ form.medical_allowance.value|default:'0' }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Transport Allowance (Rs.)</label>
+                <label>Transport Allowance (PKR)</label>
                 <input type="number" name="transport_allowance" value="{{ form.transport_allowance.value|default:'0' }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Fuel Allowance (Rs.)</label>
+                <label>Fuel Allowance (PKR)</label>
                 <input type="number" name="fuel_allowance" value="{{ form.fuel_allowance.value|default:'0' }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Other Allowance (Rs.)</label>
+                <label>Other Allowance (PKR)</label>
                 <input type="number" name="other_allowance" value="{{ form.other_allowance.value|default:'0' }}" step="0.01" class="form-control">
             </div>
         </div>
