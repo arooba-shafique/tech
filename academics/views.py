@@ -104,29 +104,33 @@ def admin_dashboard(request):
 
     # Add HR data for admin_manager
     if role == 'admin_manager':
-        from hr.models import SalaryConfig, MonthlySalary, EmployeeAttendance
-        import calendar
-        hr_config = SalaryConfig.objects.first()
-        if not hr_config:
-            hr_config = SalaryConfig.objects.create()
-        current_month = today.month
-        current_year = today.year
-        hr_salaries = MonthlySalary.objects.filter(month=current_month, year=current_year).select_related('employee')
-        hr_month_name = calendar.month_name[current_month]
-        hr_attendance = EmployeeAttendance.objects.filter(date=today).select_related('employee')
-        hr_months = [(i, calendar.month_name[i]) for i in range(1, 13)]
-        context.update({
-            'hr_config': hr_config,
-            'hr_salaries': hr_salaries,
-            'hr_month': current_month,
-            'hr_year': current_year,
-            'hr_month_name': hr_month_name,
-            'hr_months': hr_months,
-            'hr_attendance_today': hr_attendance,
-            'hr_total_gross': sum(s.gross_salary for s in hr_salaries),
-            'hr_total_deductions': sum(s.total_deductions for s in hr_salaries),
-            'hr_total_net': sum(s.net_salary for s in hr_salaries),
-        })
+        try:
+            from hr.models import SalaryConfig, MonthlySalary, EmployeeAttendance
+            import calendar
+            hr_config = SalaryConfig.objects.first()
+            if not hr_config:
+                hr_config = SalaryConfig.objects.create()
+            current_month = today.month
+            current_year = today.year
+            hr_salaries = MonthlySalary.objects.filter(month=current_month, year=current_year).select_related('employee')
+            hr_month_name = calendar.month_name[current_month]
+            hr_attendance = EmployeeAttendance.objects.filter(date=today).select_related('employee')
+            hr_months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+            context.update({
+                'hr_config': hr_config,
+                'hr_salaries': list(hr_salaries),
+                'hr_month': current_month,
+                'hr_year': current_year,
+                'hr_month_name': hr_month_name,
+                'hr_months': hr_months,
+                'hr_attendance_today': hr_attendance,
+                'hr_total_gross': sum(s.gross_salary for s in hr_salaries),
+                'hr_total_deductions': sum(s.total_deductions for s in hr_salaries),
+                'hr_total_net': sum(s.net_salary for s in hr_salaries),
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
 
     template = 'admin_manager_dashboard.html' if role == 'admin_manager' else 'admin_dashboard.html'
     return render(request, template, context)
