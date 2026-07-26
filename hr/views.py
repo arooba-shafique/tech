@@ -78,7 +78,9 @@ def salary_config(request):
         config.bonus_percentage = float(request.POST.get('bonus_percentage', 0))
         config.save()
         messages.success(request, 'Salary configuration updated.')
-        return redirect('hr_salary_config')
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'ok'})
+        return redirect('admin_dashboard')
 
     return render(request, 'hr/salary_config.html', {'config': config, 'section': 'config'})
 

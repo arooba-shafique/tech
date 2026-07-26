@@ -97,6 +97,30 @@ def admin_dashboard(request):
         'admin_users':   User.objects.filter(role__in=['admin', 'admin_manager'], school=school).order_by('role', 'username') if not request.user.is_superuser else User.objects.filter(role__in=['admin', 'admin_manager']).order_by('role', 'username'),
     }
 
+    # Add HR data for admin_manager
+    if role == 'admin_manager':
+        from hr.models import SalaryConfig, MonthlySalary, EmployeeAttendance
+        import calendar
+        hr_config = SalaryConfig.objects.first()
+        if not hr_config:
+            hr_config = SalaryConfig.objects.create()
+        current_month = today.month
+        current_year = today.year
+        hr_salaries = MonthlySalary.objects.filter(month=current_month, year=current_year).select_related('employee')
+        hr_month_name = calendar.month_name[current_month]
+        hr_attendance = EmployeeAttendance.objects.filter(date=today).select_related('employee')
+        context.update({
+            'hr_config': hr_config,
+            'hr_salaries': hr_salaries,
+            'hr_month': current_month,
+            'hr_year': current_year,
+            'hr_month_name': hr_month_name,
+            'hr_attendance_today': hr_attendance,
+            'hr_total_gross': sum(s.gross_salary for s in hr_salaries),
+            'hr_total_deductions': sum(s.total_deductions for s in hr_salaries),
+            'hr_total_net': sum(s.net_salary for s in hr_salaries),
+        })
+
     template = 'admin_manager_dashboard.html' if role == 'admin_manager' else 'admin_dashboard.html'
     return render(request, template, context)
 

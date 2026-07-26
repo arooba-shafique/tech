@@ -29,7 +29,12 @@ var titles = {
     timetable:   'Timetable',
     exams:       'Exams',
     results:     'Grades & Results',
-    attendance:  'Attendance'
+    attendance:  'Attendance',
+    'salary-config':    'Salary Configuration',
+    'generate-salary':  'Generate Salary',
+    'salary-sheet':     'Salary Sheet',
+    'salary-slips':     'Salary Slips',
+    'hr-attendance':    'Teacher Attendance'
 };
 
 function showSection(name, el) {
@@ -61,7 +66,7 @@ window.addEventListener('load', function () {
     var rawTags = (toast.dataset.section || '').trim();
     var parts   = rawTags.split(/\s+/);
     var section = parts[parts.length - 1];
-    var valid   = ['students','teachers','parents','classes','subjects','assignments','timetable','exams','results','attendance','dashboard'];
+    var valid   = ['students','teachers','parents','classes','subjects','assignments','timetable','exams','results','attendance','dashboard','salary-config','generate-salary','salary-sheet','salary-slips','hr-attendance'];
     if (valid.indexOf(section) === -1) section = 'dashboard';
     var navEl = document.querySelector('.nav-item[onclick*="\'' + section + '\'"]');
     if (navEl) showSection(section, navEl);
