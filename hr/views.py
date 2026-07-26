@@ -209,7 +209,7 @@ def generate_monthly_salary(request):
 
         month_name = calendar.month_name[month]
         messages.success(request, f'Salary generated for {month_name} {year}: {created_count} new, {updated_count} updated.')
-        return redirect('hr_monthly_salary_list')
+        return redirect('admin_console')
 
     form = GenerateSalaryForm(initial={
         'month': timezone.now().month,

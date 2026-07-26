@@ -887,7 +887,6 @@
             <div class="table-card">
                 <div class="table-card-header">
                     <h2>Generate Salary — {{ hr_month_name }} {{ hr_year }}</h2>
-                    <a href="{% url 'hr_generate_salary' %}" class="btn btn-primary" style="font-size:12px;padding:7px 14px;">Open Full Generator</a>
                 </div>
                 <div style="padding:22px;">
                     {% if hr_salaries %}
@@ -923,8 +922,32 @@
                         </table>
                     </div>
                     {% else %}
-                    <div style="text-align:center;color:var(--text-muted);padding:40px;">No salary records for {{ hr_month_name }} {{ hr_year }} yet. <a href="{% url 'hr_generate_salary' %}" style="color:#0d9488;">Generate now</a>.</div>
+                    <div style="text-align:center;color:var(--text-muted);padding:24px 0 8px;">No salary records for {{ hr_month_name }} {{ hr_year }} yet.</div>
                     {% endif %}
+
+                    <form method="post" action="{% url 'hr_generate_salary' %}" id="hr-gen-form" style="margin-top:20px;border-top:1px solid #f3f4f6;padding-top:20px;">
+                        {% csrf_token %}
+                        <h3 style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:14px;">Generate / Regenerate Salary</h3>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:16px;">
+                            <label style="display:flex;flex-direction:column;gap:5px;">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Month</span>
+                                <select name="month" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                                    {% for m_num, m_name in hr_months %}
+                                    <option value="{{ m_num }}" {% if m_num == hr_month %}selected{% endif %}>{{ m_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:5px;">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Year</span>
+                                <input type="number" name="year" value="{{ hr_year }}" min="2020" max="2030" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:5px;">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Working Days</span>
+                                <input type="number" name="total_working_days" value="26" min="1" max="31" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary" onclick="return confirm('Generate salary for all teachers?')" style="padding:10px 24px;">Generate Salary</button>
+                    </form>
                 </div>
             </div>
         </div>
