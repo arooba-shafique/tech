@@ -183,8 +183,8 @@ class MonthlySalary(models.Model):
         if not config:
             config = SalaryConfig.objects.create()
 
-        # Use config percentages for allowances (only if employee salary structure has no overrides)
-        if emp_salary_obj:
+        # Use config percentages for allowances (only if employee salary structure has overrides)
+        if emp_salary_obj and (emp_salary_obj.housing_allowance > 0 or emp_salary_obj.medical_allowance > 0 or emp_salary_obj.transport_allowance > 0 or emp_salary_obj.fuel_allowance > 0):
             self.housing_allowance = emp_salary_obj.housing_allowance
             self.medical_allowance = emp_salary_obj.medical_allowance
             self.transport_allowance = emp_salary_obj.transport_allowance
