@@ -821,11 +821,11 @@
                                     <td style="padding:10px 14px;text-align:center;">
                                         {% for key, val in hr_att_existing.items %}
                                             {% if key == emp.id %}
-                                        <input type="number" name="absent_{{ emp.id }}" value="{{ val.days_absent }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-working="{{ hr_att_total_working_days }}" data-emp="{{ emp.id }}">
+                                        <input type="number" name="absent_{{ emp.id }}" value="{{ val.days_absent }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-days-in-month="{{ att_days_in_month }}" data-emp="{{ emp.id }}">
                                             {% endif %}
                                         {% endfor %}
                                         {% if emp.id not in hr_att_existing %}
-                                        <input type="number" name="absent_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-working="{{ hr_att_total_working_days }}" data-emp="{{ emp.id }}">
+                                        <input type="number" name="absent_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-days-in-month="{{ att_days_in_month }}" data-emp="{{ emp.id }}">
                                         {% endif %}
                                     </td>
                                     <td style="padding:10px 14px;text-align:center;">
@@ -861,11 +861,11 @@
                                     <td style="padding:10px 14px;text-align:center;">
                                         {% for key, val in hr_att_existing.items %}
                                             {% if key == emp.id %}
-                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ val.days_present|default:hr_att_total_working_days }}</span>
+                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ val.days_present|default:att_days_in_month }}</span>
                                             {% endif %}
                                         {% endfor %}
                                         {% if emp.id not in hr_att_existing %}
-                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ hr_att_total_working_days }}</span>
+                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ att_days_in_month }}</span>
                                         {% endif %}
                                     </td>
                                     <td style="padding:10px 14px;">
@@ -893,11 +893,11 @@
                 document.querySelectorAll('#section-hr-attendance input[type="number"][data-emp]').forEach(function(input) {
                     input.addEventListener('input', function() {
                         var empId = this.getAttribute('data-emp');
-                        var working = parseInt(this.getAttribute('data-working'));
+                        var daysInMonth = parseInt(this.getAttribute('data-days-in-month'));
                         var row = this.closest('tr');
                         var absent = parseInt(row.querySelector('input[name="absent_' + empId + '"]').value) || 0;
                         var unpaid = parseInt(row.querySelector('input[name="unpaid_leaves_' + empId + '"]').value) || 0;
-                        var present = Math.max(0, working - absent - unpaid);
+                        var present = Math.max(0, daysInMonth - absent - unpaid);
                         document.getElementById('present_' + empId).textContent = present;
                     });
                 });

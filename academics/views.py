@@ -141,6 +141,7 @@ def admin_dashboard(request):
             att_year = int(request.GET.get('year', today.year)) if request.GET.get('year') and request.GET.get('section') == 'hr-attendance' else today.year
             att_config = SalaryConfig.objects.filter(month=att_month, year=att_year).first()
             att_working_days = att_config.default_working_days if att_config else 26
+            att_days_in_month = calendar.monthrange(att_year, att_month)[1]
 
             hr_attendance_employees = teachers_qs.filter(is_employee_separated=False)
             hr_att_existing = {}
@@ -170,6 +171,7 @@ def admin_dashboard(request):
                 'att_month': att_month,
                 'att_year': att_year,
                 'att_month_name': calendar.month_name[att_month],
+                'att_days_in_month': att_days_in_month,
             })
         except Exception as e:
             import traceback
