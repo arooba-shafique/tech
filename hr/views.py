@@ -179,18 +179,24 @@ def salary_config(request):
     if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
         return HttpResponse("Unauthorized", status=403)
 
-    config = SalaryConfig.objects.first()
+    import calendar as cal
+    month = int(request.POST.get('month', timezone.now().month)) if request.method == 'POST' else int(request.GET.get('month', timezone.now().month))
+    year = int(request.POST.get('year', timezone.now().year)) if request.method == 'POST' else int(request.GET.get('year', timezone.now().year))
+
+    config = SalaryConfig.objects.filter(month=month, year=year).first()
     if not config:
-        config = SalaryConfig.objects.create(tax_percentage=0)
+        config = SalaryConfig.objects.create(month=month, year=year, tax_percentage=0)
 
     if request.method == 'POST':
         action = request.POST.get('action', 'save')
         if action == 'reset':
             config.delete()
-            SalaryConfig.objects.create()
+            SalaryConfig.objects.create(month=month, year=year)
             messages.success(request, 'Salary configuration reset to defaults.')
             return redirect('admin_console')
 
+        config.month = month
+        config.year = year
         config.default_working_days = int(request.POST.get('default_working_days', 26))
         config.max_allowed_leaves = int(request.POST.get('max_allowed_leaves', 0))
         config.late_deduction_per = int(request.POST.get('late_deduction_per', 3))
@@ -295,7 +301,7 @@ def generate_monthly_salary(request):
 
     month = int(request.POST.get('month', timezone.now().month)) if request.method == 'POST' else int(request.GET.get('month', timezone.now().month))
     year = int(request.POST.get('year', timezone.now().year)) if request.method == 'POST' else int(request.GET.get('year', timezone.now().year))
-    config = SalaryConfig.objects.first()
+    config = SalaryConfig.objects.filter(month=month, year=year).first()
     total_working_days = config.default_working_days if config else 26
     bonus_per_day = 0
 

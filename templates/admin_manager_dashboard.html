@@ -166,6 +166,10 @@
         </a>
 
         <div class="nav-label">HR — Salary</div>
+        <a class="nav-item" href="#" onclick="showSection('hr-attendance',this);return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Monthly Attendance
+        </a>
         <a class="nav-item" href="#" onclick="showSection('salary-config',this);return false;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Salary Config
@@ -177,10 +181,6 @@
         <a class="nav-item" href="#" onclick="showSection('salary-slips',this);return false;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Salary Slips
-        </a>
-        <a class="nav-item" href="#" onclick="showSection('hr-attendance',this);return false;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            Monthly Attendance
         </a>
     </nav>
 
@@ -753,6 +753,142 @@
             {% if not results %}<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:48px;background:var(--white);border-radius:12px;">No results found.</div>{% endif %}
         </div>
 
+        <!-- ═══════════ HR: MONTHLY ATTENDANCE ═══════════ -->
+        <div id="section-hr-attendance" class="section">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
+                <div>
+                    <h2 style="font-size:15px;font-weight:700;">Monthly Attendance Summary</h2>
+                    <p style="font-size:12px;color:var(--text-secondary);margin-top:3px;">Enter absents, leaves &amp; late days — these flow into salary slips automatically.</p>
+                </div>
+            </div>
+            <div style="padding:10px 20px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span style="font-size:12px;color:#0f766e;"><strong>Days Present</strong> is auto-calculated: Working Days - Absent - Unpaid Leaves. These numbers flow directly into salary slips.</span>
+            </div>
+            <form method="post" action="{% url 'hr_monthly_attendance' %}">
+                {% csrf_token %}
+                <input type="hidden" name="month" value="{{ current_month }}">
+                <input type="hidden" name="year" value="{{ current_year }}">
+                <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
+                    <div style="padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                        <div style="font-size:14px;font-weight:700;">Attendance for {{ current_month_name }} {{ current_year }} (Working Days: {{ hr_att_total_working_days }})</div>
+                        <button type="submit" class="btn btn-primary" style="padding:8px 20px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Save Attendance
+                        </button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;min-width:900px;">
+                            <thead>
+                                <tr style="background:#f9fafb;">
+                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Sr#</th>
+                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Employee Name</th>
+                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Designation</th>
+                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Absent Days</th>
+                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Paid Leaves</th>
+                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Unpaid Leaves</th>
+                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Late Days</th>
+                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#16a34a;border-bottom:2px solid var(--border);">Days Present</th>
+                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in hr_attendance_employees %}
+                                {% with emp_data=hr_att_existing|dictsort:"employee_id" %}
+                                <tr style="border-bottom:1px solid #f3f4f6;">
+                                    <td style="padding:10px 14px;">{{ forloop.counter }}</td>
+                                    <td style="padding:10px 14px;">
+                                        <div style="font-weight:600;font-size:13px;">{{ emp.full_name }}</div>
+                                        <div style="font-size:11px;color:var(--text-muted);">{{ emp.employee_id|default:"-" }}</div>
+                                    </td>
+                                    <td style="padding:10px 14px;font-size:13px;">{{ emp.designation|default:"-" }}</td>
+                                    <td style="padding:10px 14px;text-align:center;">
+                                        {% for key, val in hr_att_existing.items %}
+                                            {% if key == emp.id %}
+                                        <input type="number" name="absent_{{ emp.id }}" value="{{ val.days_absent }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-working="{{ hr_att_total_working_days }}" data-emp="{{ emp.id }}">
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if emp.id not in hr_att_existing %}
+                                        <input type="number" name="absent_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-working="{{ hr_att_total_working_days }}" data-emp="{{ emp.id }}">
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:10px 14px;text-align:center;">
+                                        {% for key, val in hr_att_existing.items %}
+                                            {% if key == emp.id %}
+                                        <input type="number" name="paid_leaves_{{ emp.id }}" value="{{ val.paid_leaves }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if emp.id not in hr_att_existing %}
+                                        <input type="number" name="paid_leaves_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:10px 14px;text-align:center;">
+                                        {% for key, val in hr_att_existing.items %}
+                                            {% if key == emp.id %}
+                                        <input type="number" name="unpaid_leaves_{{ emp.id }}" value="{{ val.unpaid_leaves }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if emp.id not in hr_att_existing %}
+                                        <input type="number" name="unpaid_leaves_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:10px 14px;text-align:center;">
+                                        {% for key, val in hr_att_existing.items %}
+                                            {% if key == emp.id %}
+                                        <input type="number" name="late_{{ emp.id }}" value="{{ val.late_coming_days }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if emp.id not in hr_att_existing %}
+                                        <input type="number" name="late_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:10px 14px;text-align:center;">
+                                        {% for key, val in hr_att_existing.items %}
+                                            {% if key == emp.id %}
+                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ val.days_present|default:hr_att_total_working_days }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if emp.id not in hr_att_existing %}
+                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ hr_att_total_working_days }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:10px 14px;">
+                                        {% for key, val in hr_att_existing.items %}
+                                            {% if key == emp.id %}
+                                        <input type="text" name="remarks_{{ emp.id }}" value="{{ val.remarks }}" class="form-control" placeholder="Optional" style="min-width:110px;">
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if emp.id not in hr_att_existing %}
+                                        <input type="text" name="remarks_{{ emp.id }}" value="" class="form-control" placeholder="Optional" style="min-width:110px;">
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% empty %}
+                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">No employees found.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </form>
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('#section-hr-attendance input[type="number"][data-emp]').forEach(function(input) {
+                    input.addEventListener('input', function() {
+                        var empId = this.getAttribute('data-emp');
+                        var working = parseInt(this.getAttribute('data-working'));
+                        var row = this.closest('tr');
+                        var absent = parseInt(row.querySelector('input[name="absent_' + empId + '"]').value) || 0;
+                        var unpaid = parseInt(row.querySelector('input[name="unpaid_leaves_' + empId + '"]').value) || 0;
+                        var present = Math.max(0, working - absent - unpaid);
+                        document.getElementById('present_' + empId).textContent = present;
+                    });
+                });
+            });
+            </script>
+        </div>
+
         <!-- ═══════════ HR: SALARY CONFIG ═══════════ -->
         <div id="section-salary-config" class="section">
             <div class="table-card">
@@ -761,6 +897,18 @@
                     <form method="post" action="{% url 'hr_salary_config' %}" style="display:flex;flex-direction:column;gap:18px;">
                         {% csrf_token %}
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+                            <label style="display:flex;flex-direction:column;gap:5px;">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Month</span>
+                                <select name="month" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                                    {% for m_num, m_name in hr_months %}
+                                    <option value="{{ m_num }}" {% if m_num == hr_config.month %}selected{% endif %}>{{ m_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:5px;">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Year</span>
+                                <input type="number" name="year" value="{{ hr_config.year }}" min="2020" max="2030" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                            </label>
                             <label style="display:flex;flex-direction:column;gap:5px;">
                                 <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Working Days/Month</span>
                                 <input type="number" name="default_working_days" value="{{ hr_config.default_working_days }}" min="1" max="31" required style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
@@ -1050,147 +1198,6 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
-
-        <!-- ═══════════ HR: MONTHLY ATTENDANCE ═══════════ -->
-        <div id="section-hr-attendance" class="section">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
-                <div>
-                    <h2 style="font-size:15px;font-weight:700;">Monthly Attendance Summary</h2>
-                    <p style="font-size:12px;color:var(--text-secondary);margin-top:3px;">Enter absents, leaves &amp; late days — these flow into salary slips automatically.</p>
-                </div>
-            </div>
-
-            <!-- Info Banner -->
-            <div style="padding:10px 20px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span style="font-size:12px;color:#0f766e;"><strong>Days Present</strong> is auto-calculated: Working Days - Absent - Unpaid Leaves. These numbers flow directly into salary slips.</span>
-            </div>
-
-            <form method="post" action="{% url 'hr_monthly_attendance' %}">
-                {% csrf_token %}
-                <input type="hidden" name="month" value="{{ current_month }}">
-                <input type="hidden" name="year" value="{{ current_year }}">
-
-                <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
-                    <div style="padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                        <div style="font-size:14px;font-weight:700;">Attendance for {{ current_month_name }} {{ current_year }} (Working Days: {{ hr_att_total_working_days }})</div>
-                        <button type="submit" class="btn btn-primary" style="padding:8px 20px;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                            Save Attendance
-                        </button>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table style="width:100%;border-collapse:collapse;min-width:900px;">
-                            <thead>
-                                <tr style="background:#f9fafb;">
-                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Sr#</th>
-                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Employee Name</th>
-                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Designation</th>
-                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Absent Days</th>
-                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Paid Leaves</th>
-                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Unpaid Leaves</th>
-                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Late Days</th>
-                                    <th style="padding:10px 14px;text-align:center;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#16a34a;border-bottom:2px solid var(--border);">Days Present</th>
-                                    <th style="padding:10px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);">Remarks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for emp in hr_attendance_employees %}
-                                {% with emp_data=hr_att_existing|dictsort:"employee_id" %}
-                                <tr style="border-bottom:1px solid #f3f4f6;">
-                                    <td style="padding:10px 14px;">{{ forloop.counter }}</td>
-                                    <td style="padding:10px 14px;">
-                                        <div style="font-weight:600;font-size:13px;">{{ emp.full_name }}</div>
-                                        <div style="font-size:11px;color:var(--text-muted);">{{ emp.employee_id|default:"-" }}</div>
-                                    </td>
-                                    <td style="padding:10px 14px;font-size:13px;">{{ emp.designation|default:"-" }}</td>
-                                    <td style="padding:10px 14px;text-align:center;">
-                                        {% for key, val in hr_att_existing.items %}
-                                            {% if key == emp.id %}
-                                        <input type="number" name="absent_{{ emp.id }}" value="{{ val.days_absent }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-working="{{ hr_att_total_working_days }}" data-emp="{{ emp.id }}">
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if emp.id not in hr_att_existing %}
-                                        <input type="number" name="absent_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;" data-working="{{ hr_att_total_working_days }}" data-emp="{{ emp.id }}">
-                                        {% endif %}
-                                    </td>
-                                    <td style="padding:10px 14px;text-align:center;">
-                                        {% for key, val in hr_att_existing.items %}
-                                            {% if key == emp.id %}
-                                        <input type="number" name="paid_leaves_{{ emp.id }}" value="{{ val.paid_leaves }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if emp.id not in hr_att_existing %}
-                                        <input type="number" name="paid_leaves_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
-                                        {% endif %}
-                                    </td>
-                                    <td style="padding:10px 14px;text-align:center;">
-                                        {% for key, val in hr_att_existing.items %}
-                                            {% if key == emp.id %}
-                                        <input type="number" name="unpaid_leaves_{{ emp.id }}" value="{{ val.unpaid_leaves }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if emp.id not in hr_att_existing %}
-                                        <input type="number" name="unpaid_leaves_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
-                                        {% endif %}
-                                    </td>
-                                    <td style="padding:10px 14px;text-align:center;">
-                                        {% for key, val in hr_att_existing.items %}
-                                            {% if key == emp.id %}
-                                        <input type="number" name="late_{{ emp.id }}" value="{{ val.late_coming_days }}" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if emp.id not in hr_att_existing %}
-                                        <input type="number" name="late_{{ emp.id }}" value="0" min="0" max="{{ hr_att_total_working_days }}" class="form-control" style="min-width:65px;text-align:center;margin:0 auto;">
-                                        {% endif %}
-                                    </td>
-                                    <td style="padding:10px 14px;text-align:center;">
-                                        {% for key, val in hr_att_existing.items %}
-                                            {% if key == emp.id %}
-                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ val.days_present|default:hr_att_total_working_days }}</span>
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if emp.id not in hr_att_existing %}
-                                        <span class="badge badge-green" id="present_{{ emp.id }}" style="font-size:13px;">{{ hr_att_total_working_days }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td style="padding:10px 14px;">
-                                        {% for key, val in hr_att_existing.items %}
-                                            {% if key == emp.id %}
-                                        <input type="text" name="remarks_{{ emp.id }}" value="{{ val.remarks }}" class="form-control" placeholder="Optional" style="min-width:110px;">
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if emp.id not in hr_att_existing %}
-                                        <input type="text" name="remarks_{{ emp.id }}" value="" class="form-control" placeholder="Optional" style="min-width:110px;">
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endwith %}
-                                {% empty %}
-                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">No employees found.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </form>
-
-            <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('#section-hr-attendance input[type="number"][data-emp]').forEach(function(input) {
-                    input.addEventListener('input', function() {
-                        var empId = this.getAttribute('data-emp');
-                        var working = parseInt(this.getAttribute('data-working'));
-                        var row = this.closest('tr');
-                        var absent = parseInt(row.querySelector('input[name="absent_' + empId + '"]').value) || 0;
-                        var unpaid = parseInt(row.querySelector('input[name="unpaid_leaves_' + empId + '"]').value) || 0;
-                        var present = Math.max(0, working - absent - unpaid);
-                        document.getElementById('present_' + empId).textContent = present;
-                    });
-                });
-            });
-            </script>
         </div>
 
     </div><!-- end .content -->

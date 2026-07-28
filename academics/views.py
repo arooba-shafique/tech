@@ -107,12 +107,12 @@ def admin_dashboard(request):
         try:
             from hr.models import SalaryConfig, MonthlySalary, EmployeeAttendance
             import calendar
-            hr_config = SalaryConfig.objects.first()
-            if not hr_config:
-                hr_config = SalaryConfig.objects.create()
-
             current_month = today.month
             current_year = today.year
+
+            hr_config = SalaryConfig.objects.filter(month=current_month, year=current_year).first()
+            if not hr_config:
+                hr_config = SalaryConfig.objects.create(month=current_month, year=current_year)
 
             # Salary sheet month/year from GET params
             sheet_month = int(request.GET.get('month', today.month)) if request.GET.get('month') else today.month

@@ -8,6 +8,10 @@ class SalaryConfig(models.Model):
     """Global salary configuration per school — all criteria manually set."""
     school = models.OneToOneField('accounts.School', on_delete=models.CASCADE, related_name='salary_config', null=True, blank=True)
     
+    # Month/Year
+    month = models.PositiveIntegerField(default=1, help_text="Month (1-12)")
+    year = models.PositiveIntegerField(default=2026, help_text="Year")
+    
     # Basic settings
     default_working_days = models.PositiveIntegerField(default=26, help_text="Default working days per month")
     
