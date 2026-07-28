@@ -146,6 +146,8 @@ def admin_dashboard(request):
             hr_attendance_employees = teachers_qs.filter(is_employee_separated=False)
             hr_att_existing = {}
             for ms in MonthlySalary.objects.filter(month=att_month, year=att_year, employee__in=hr_attendance_employees):
+                # Recalculate days_present using natural calendar days
+                ms.days_present = max(0, att_days_in_month - ms.days_absent - ms.unpaid_leaves)
                 hr_att_existing[ms.employee_id] = ms
 
             context.update({
