@@ -78,22 +78,7 @@ def employee_list(request):
         emp.employment_type_display = sal.get_employment_type_display() if sal else '-'
         emp.working_days = f"{sal.working_days_per_week}/week" if sal else '-'
 
-    context = {
-        'employees': employees,
-        'section': 'employees',
-        'search': search,
-        'emp_type': emp_type,
-        'designation': designation,
-        'gender': gender,
-        'total': total,
-        'permanent': permanent,
-        'contract': contract,
-        'daily_wager': daily_wager,
-        'male': male,
-        'female': female,
-        'designation_choices': TeacherProfile.DESIGNATION_CHOICES,
-    }
-    return render(request, 'hr/employee_list.html', context)
+    return redirect('admin_console')
 
 
 # ─────────────────────────────────────────────
@@ -155,7 +140,7 @@ def employee_edit(request, employee_id):
             emp_salary.save()
 
         messages.success(request, f'Employee {employee.full_name} updated successfully.')
-        return redirect('hr_employee_detail', employee_id=employee.id)
+        return redirect('admin_console')
 
     context = {
         'employee': employee,
@@ -181,7 +166,7 @@ def employee_delete(request, employee_id):
         employee.is_employee_separated = True
         employee.save()
         messages.success(request, f'{employee.full_name} has been marked as separated.')
-        return redirect('hr_employee_list')
+        return redirect('admin_console')
 
     return render(request, 'hr/employee_delete_confirm.html', {
         'employee': employee,
@@ -204,7 +189,7 @@ def salary_config(request):
             config.delete()
             SalaryConfig.objects.create()
             messages.success(request, 'Salary configuration reset to defaults.')
-            return redirect('hr_salary_config')
+            return redirect('admin_console')
 
         config.default_working_days = int(request.POST.get('default_working_days', 26))
         config.max_allowed_leaves = int(request.POST.get('max_allowed_leaves', 0))
@@ -219,9 +204,9 @@ def salary_config(request):
         config.bonus_percentage = float(request.POST.get('bonus_percentage', 0))
         config.save()
         messages.success(request, 'Salary configuration updated.')
-        return redirect('hr_salary_config')
+        return redirect('admin_console')
 
-    return render(request, 'hr/salary_config.html', {'config': config, 'section': 'config'})
+    return redirect('admin_console')
 
 
 # ─────────────────────────────────────────────
@@ -242,7 +227,7 @@ def add_employee_salary(request, employee_id):
             sal.employee = employee
             sal.save()
             messages.success(request, f'Salary structure saved for {employee.full_name}.')
-            return redirect('hr_employee_detail', employee_id=employee.id)
+            return redirect('admin_console')
     else:
         form = EmployeeSalaryForm(initial={'employee': employee})
     return render(request, 'hr/employee_salary_form.html', {
@@ -264,7 +249,7 @@ def edit_employee_salary(request, employee_id):
         if form.is_valid():
             form.save()
             messages.success(request, f'Salary structure updated for {employee.full_name}.')
-            return redirect('hr_employee_detail', employee_id=employee.id)
+            return redirect('admin_console')
     else:
         form = EmployeeSalaryForm(instance=sal)
     return render(request, 'hr/employee_salary_form.html', {
@@ -284,7 +269,7 @@ def delete_employee_salary(request, employee_id):
     if sal:
         sal.delete()
         messages.success(request, f'Salary structure deleted for {employee.full_name}.')
-    return redirect('hr_employee_detail', employee_id=employee.id)
+    return redirect('admin_console')
 
 
 # ─────────────────────────────────────────────
@@ -353,32 +338,9 @@ def generate_monthly_salary(request):
 
         month_name = calendar.month_name[month]
         messages.success(request, f'Salary generated for {month_name} {year}: {created_count} new, {skipped_count} already existed.')
-        return redirect('hr_monthly_salary_list')
+        return redirect('admin_console')
 
-    # GET: Show preview
-    preview_data = []
-    for emp in employees:
-        existing = MonthlySalary.objects.filter(employee=emp, month=month, year=year).first()
-        emp_salary = EmployeeSalary.objects.filter(employee=emp).first()
-        basic = emp.salary if emp.salary > 0 else (emp_salary.basic_salary if emp_salary else 0)
-        preview_data.append({
-            'employee': emp,
-            'basic_salary': basic,
-            'exists': existing is not None,
-        })
-
-    form_data = {
-        'month': month,
-        'year': year,
-        'total_working_days': total_working_days,
-        'bonus_per_day': bonus_per_day,
-    }
-    return render(request, 'hr/generate_salary.html', {
-        'form_data': form_data,
-        'preview_data': preview_data,
-        'month': month,
-        'year': year,
-    })
+    return redirect('admin_console')
 
 
 # ─────────────────────────────────────────────
@@ -432,11 +394,11 @@ def monthly_salary_list(request):
                 pay_status='paid', payment_date=pay_date
             )
             messages.success(request, f'{count} salary records marked as paid.')
-            return redirect(f'/hr/salary/monthly/?month={month}&year={year}')
+            return redirect('admin_console')
         elif action == 'bulk_delete' and selected_ids:
             count = MonthlySalary.objects.filter(pk__in=selected_ids).delete()[0]
             messages.success(request, f'{count} salary records deleted.')
-            return redirect(f'/hr/salary/monthly/?month={month}&year={year}')
+            return redirect('admin_console')
 
     # Totals
     total_gross = sum(s.gross_salary for s in salaries)
@@ -444,19 +406,7 @@ def monthly_salary_list(request):
     total_net = sum(s.net_salary for s in salaries)
     total_basic = sum(s.basic_salary for s in salaries)
 
-    context = {
-        'salaries': salaries,
-        'month': month,
-        'year': year,
-        'month_name': month_name,
-        'total_gross': total_gross,
-        'total_deductions': total_deductions,
-        'total_net': total_net,
-        'total_basic': total_basic,
-        'search': search,
-        'status_filter': status_filter,
-    }
-    return render(request, 'hr/monthly_salary_list.html', context)
+    return redirect('admin_console')
 
 
 # ─────────────────────────────────────────────
@@ -500,7 +450,7 @@ def edit_monthly_salary(request, pk):
                 pass
         salary.save()
         messages.success(request, f'Salary updated for {salary.employee.full_name}.')
-        return redirect('hr_monthly_salary_list')
+        return redirect('admin_console')
 
     return render(request, 'hr/edit_monthly_salary.html', {'salary': salary})
 
@@ -522,7 +472,7 @@ def delete_monthly_salary(request, pk):
     name = salary.employee.full_name
     salary.delete()
     messages.success(request, f'Salary record deleted for {name}.')
-    return redirect(f'/hr/salary/monthly/?month={month}&year={year}')
+    return redirect('admin_console')
 
 
 # ─────────────────────────────────────────────
@@ -625,14 +575,7 @@ def salary_slip_all(request):
     if salaries:
         school = getattr(salaries[0].employee, 'school', None)
 
-    context = {
-        'salaries': salaries,
-        'month_name': month_name,
-        'year': year,
-        'print_all': True,
-        'school': school,
-    }
-    return render(request, 'hr/salary_slip_print_all.html', context)
+    return redirect('admin_console')
 
 
 # ─────────────────────────────────────────────
@@ -703,7 +646,7 @@ def monthly_attendance_summary(request):
                 updated_count += 1
 
         messages.success(request, f'Attendance saved for {month_name} {year}: {created_count} new, {updated_count} updated.')
-        return redirect(f'/hr/attendance/monthly/?month={month}&year={year}')
+        return redirect('admin_console')
 
     context = {
         'employees': employees,
