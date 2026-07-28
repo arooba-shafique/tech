@@ -137,9 +137,14 @@ def admin_dashboard(request):
                     slip_selected_name = emp_obj.full_name if emp_obj else ''
 
             # Monthly attendance data
+            att_month = int(request.GET.get('month', today.month)) if request.GET.get('month') and request.GET.get('section') == 'hr-attendance' else today.month
+            att_year = int(request.GET.get('year', today.year)) if request.GET.get('year') and request.GET.get('section') == 'hr-attendance' else today.year
+            att_config = SalaryConfig.objects.filter(month=att_month, year=att_year).first()
+            att_working_days = att_config.default_working_days if att_config else 26
+
             hr_attendance_employees = teachers_qs.filter(is_employee_separated=False)
             hr_att_existing = {}
-            for ms in MonthlySalary.objects.filter(month=current_month, year=current_year, employee__in=hr_attendance_employees):
+            for ms in MonthlySalary.objects.filter(month=att_month, year=att_year, employee__in=hr_attendance_employees):
                 hr_att_existing[ms.employee_id] = ms
 
             context.update({
@@ -154,7 +159,7 @@ def admin_dashboard(request):
                 'hr_total_net': sum(s.net_salary for s in hr_salaries),
                 'hr_attendance_employees': hr_attendance_employees,
                 'hr_att_existing': hr_att_existing,
-                'hr_att_total_working_days': hr_config.default_working_days,
+                'hr_att_total_working_days': att_working_days,
                 'hr_all_employees': hr_all_employees,
                 'slip_salaries': slip_salaries,
                 'slip_selected_employee': slip_selected_employee,
@@ -162,6 +167,9 @@ def admin_dashboard(request):
                 'current_month': current_month,
                 'current_year': current_year,
                 'current_month_name': calendar.month_name[current_month],
+                'att_month': att_month,
+                'att_year': att_year,
+                'att_month_name': calendar.month_name[att_month],
             })
         except Exception as e:
             import traceback

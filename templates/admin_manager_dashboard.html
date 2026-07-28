@@ -765,13 +765,29 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 <span style="font-size:12px;color:#0f766e;"><strong>Days Present</strong> is auto-calculated: Working Days - Absent - Unpaid Leaves. These numbers flow directly into salary slips.</span>
             </div>
+            <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;">
+                <input type="hidden" name="section" value="hr-attendance">
+                <label style="display:flex;flex-direction:column;gap:5px;">
+                    <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Month</span>
+                    <select name="month" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                        {% for m_num, m_name in hr_months %}
+                        <option value="{{ m_num }}" {% if m_num == att_month %}selected{% endif %}>{{ m_name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:5px;">
+                    <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Year</span>
+                    <input type="number" name="year" value="{{ att_year }}" min="2020" max="2030" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:100px;">
+                </label>
+                <button type="submit" class="btn btn-primary" style="padding:8px 20px;">Load</button>
+            </form>
             <form method="post" action="{% url 'hr_monthly_attendance' %}">
                 {% csrf_token %}
-                <input type="hidden" name="month" value="{{ current_month }}">
-                <input type="hidden" name="year" value="{{ current_year }}">
+                <input type="hidden" name="month" value="{{ att_month }}">
+                <input type="hidden" name="year" value="{{ att_year }}">
                 <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
                     <div style="padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                        <div style="font-size:14px;font-weight:700;">Attendance for {{ current_month_name }} {{ current_year }} (Working Days: {{ hr_att_total_working_days }})</div>
+                        <div style="font-size:14px;font-weight:700;">Attendance for {{ att_month_name }} {{ att_year }} (Working Days: {{ hr_att_total_working_days }})</div>
                         <button type="submit" class="btn btn-primary" style="padding:8px 20px;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Save Attendance
