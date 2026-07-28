@@ -203,6 +203,12 @@ def salary_config(request):
         config.bonus_per_day = float(request.POST.get('bonus_per_day', 0))
         config.bonus_percentage = float(request.POST.get('bonus_percentage', 0))
         config.save()
+
+        # Recalculate all existing MonthlySalary records using the new config
+        for ms in MonthlySalary.objects.filter(salary_config=config):
+            ms.total_working_days = config.default_working_days
+            ms.save()
+
         messages.success(request, 'Salary configuration updated.')
         return redirect('admin_console')
 
@@ -289,13 +295,14 @@ def generate_monthly_salary(request):
 
     month = int(request.POST.get('month', timezone.now().month)) if request.method == 'POST' else int(request.GET.get('month', timezone.now().month))
     year = int(request.POST.get('year', timezone.now().year)) if request.method == 'POST' else int(request.GET.get('year', timezone.now().year))
-    total_working_days = 26
+    config = SalaryConfig.objects.first()
+    total_working_days = config.default_working_days if config else 26
     bonus_per_day = 0
 
     if request.method == 'POST':
         month = int(request.POST.get('month', timezone.now().month))
         year = int(request.POST.get('year', timezone.now().year))
-        total_working_days = int(request.POST.get('total_working_days', 26))
+        total_working_days = int(request.POST.get('total_working_days', total_working_days))
         bonus_per_day = request.POST.get('bonus_per_day', '0')
         bonus_per_day = float(bonus_per_day) if bonus_per_day else 0
 
@@ -320,7 +327,7 @@ def generate_monthly_salary(request):
             monthly, created = MonthlySalary.objects.get_or_create(
                 employee=emp, month=month, year=year,
                 defaults={
-                    'salary_config': SalaryConfig.objects.first(),
+                    'salary_config': config,
                     'total_working_days': total_working_days,
                     'days_absent': 0,
                     'unpaid_leaves': 0,
@@ -334,10 +341,13 @@ def generate_monthly_salary(request):
             if created:
                 created_count += 1
             else:
-                skipped_count += 1
+                if monthly.total_working_days != total_working_days:
+                    monthly.total_working_days = total_working_days
+                    monthly.save()
+                updated_count += 1
 
         month_name = calendar.month_name[month]
-        messages.success(request, f'Salary generated for {month_name} {year}: {created_count} new, {skipped_count} already existed.')
+        messages.success(request, f'Salary generated for {month_name} {year}: {created_count} new, {updated_count} updated.')
         return redirect('admin_console')
 
     return redirect('admin_console')
