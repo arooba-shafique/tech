@@ -114,8 +114,14 @@ def admin_dashboard(request):
             current_year = today.year
             hr_salaries = MonthlySalary.objects.filter(month=current_month, year=current_year).select_related('employee')
             hr_month_name = calendar.month_name[current_month]
-            hr_attendance = EmployeeAttendance.objects.filter(date=today).select_related('employee')
             hr_months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+
+            # Monthly attendance data
+            hr_attendance_employees = teachers_qs.filter(is_employee_separated=False)
+            hr_att_existing = {}
+            for ms in MonthlySalary.objects.filter(month=current_month, year=current_year, employee__in=hr_attendance_employees):
+                hr_att_existing[ms.employee_id] = ms
+
             context.update({
                 'hr_config': hr_config,
                 'hr_salaries': list(hr_salaries),
@@ -123,10 +129,12 @@ def admin_dashboard(request):
                 'hr_year': current_year,
                 'hr_month_name': hr_month_name,
                 'hr_months': hr_months,
-                'hr_attendance_today': hr_attendance,
                 'hr_total_gross': sum(s.gross_salary for s in hr_salaries),
                 'hr_total_deductions': sum(s.total_deductions for s in hr_salaries),
                 'hr_total_net': sum(s.net_salary for s in hr_salaries),
+                'hr_attendance_employees': hr_attendance_employees,
+                'hr_att_existing': hr_att_existing,
+                'hr_att_total_working_days': hr_config.default_working_days,
             })
         except Exception as e:
             import traceback

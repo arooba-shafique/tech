@@ -595,8 +595,12 @@ def monthly_attendance_summary(request):
         employees = employees.filter(school=school)
 
     now = timezone.now()
-    month = int(request.GET.get('month', now.month))
-    year = int(request.GET.get('year', now.year))
+    if request.method == 'POST':
+        month = int(request.POST.get('month', now.month))
+        year = int(request.POST.get('year', now.year))
+    else:
+        month = int(request.GET.get('month', now.month))
+        year = int(request.GET.get('year', now.year))
     month_name = calendar.month_name[month]
 
     config = SalaryConfig.objects.first()
