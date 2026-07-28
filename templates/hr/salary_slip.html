@@ -39,7 +39,7 @@
 
 <div class="card" style="max-width:800px;margin:0 auto;">
     <div style="text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--primary);">
-        <h2 style="font-size:18px;font-weight:700;color:var(--primary);">ROYAL INTERNATIONAL SCHOOL SYSTEM</h2>
+        <h2 style="font-size:18px;font-weight:700;color:var(--primary);">{% if school %}{{ school.name }}{% else %}INSTITUTION{% endif %}</h2>
         <p style="font-size:12px;color:var(--text-muted);">Salary Slip for the Month of {{ month_name }} {{ salary.year }}</p>
     </div>
 
@@ -63,7 +63,7 @@
     </div>
 
     <!-- Attendance -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;">
         <div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;">
             <div style="font-size:18px;font-weight:700;color:var(--green);">{{ salary.days_present }}</div>
             <div style="font-size:10px;color:var(--text-muted);">Present</div>
@@ -72,9 +72,13 @@
             <div style="font-size:18px;font-weight:700;color:var(--red);">{{ salary.days_absent }}</div>
             <div style="font-size:10px;color:var(--text-muted);">Absent</div>
         </div>
+        <div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;">
+            <div style="font-size:18px;font-weight:700;color:#0d9488;">{{ salary.paid_leaves }}</div>
+            <div style="font-size:10px;color:var(--text-muted);">Paid Leave</div>
+        </div>
         <div style="text-align:center;padding:10px;background:#fffbeb;border-radius:8px;">
-            <div style="font-size:18px;font-weight:700;color:var(--yellow);">{{ salary.allowed_leaves }}</div>
-            <div style="font-size:10px;color:var(--text-muted);">Leaves</div>
+            <div style="font-size:18px;font-weight:700;color:var(--yellow);">{{ salary.unpaid_leaves }}</div>
+            <div style="font-size:10px;color:var(--text-muted);">Unpaid Leave</div>
         </div>
         <div style="text-align:center;padding:10px;background:#eff6ff;border-radius:8px;">
             <div style="font-size:18px;font-weight:700;color:var(--blue);">{{ salary.late_coming_days }}</div>

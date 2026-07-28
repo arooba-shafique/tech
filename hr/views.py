@@ -1,10 +1,12 @@
 import calendar
+import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.db.models import Q, Sum
 import json
 
 from academics.models import TeacherProfile
@@ -25,7 +27,7 @@ def get_user_school(user):
 
 @login_required(login_url='admin_login')
 def employee_list(request):
-    """Employee list matching FORMAT.xlsx columns."""
+    """Employee list with search, filter, and CRUD actions."""
     role = getattr(request.user, 'role', None)
     if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
         return HttpResponse("Unauthorized", status=403)
@@ -35,24 +37,156 @@ def employee_list(request):
     if school and not request.user.is_superuser:
         employees = employees.filter(school=school)
 
+    # Search
+    search = request.GET.get('search', '').strip()
+    if search:
+        employees = employees.filter(
+            Q(full_name__icontains=search) |
+            Q(employee_id__icontains=search) |
+            Q(cnic__icontains=search) |
+            Q(phone__icontains=search)
+        )
+
+    # Filter by employment type
+    emp_type = request.GET.get('type', '')
+    if emp_type:
+        employees = employees.filter(employment_type=emp_type)
+
+    # Filter by designation
+    designation = request.GET.get('designation', '')
+    if designation:
+        employees = employees.filter(designation=designation)
+
+    # Filter by gender
+    gender = request.GET.get('gender', '')
+    if gender:
+        employees = employees.filter(gender=gender)
+
+    # Stats
+    total = employees.count()
+    permanent = employees.filter(employment_type='permanent').count()
+    contract = employees.filter(employment_type='contract').count()
+    daily_wager = employees.filter(employment_type='daily_wager').count()
+    male = employees.filter(gender='M').count()
+    female = employees.filter(gender='F').count()
+
     # Attach salary info
     for emp in employees:
         sal = getattr(emp, 'salary_detail', None)
         emp.basic_salary = sal.basic_salary if sal else 0
-        emp.salary_type = sal.get_salary_type_display() if sal else '-'
-        emp.employment_type = sal.get_employment_type_display() if sal else '-'
+        emp.salary_type_display = sal.get_salary_type_display() if sal else '-'
+        emp.employment_type_display = sal.get_employment_type_display() if sal else '-'
         emp.working_days = f"{sal.working_days_per_week}/week" if sal else '-'
 
     context = {
         'employees': employees,
         'section': 'employees',
+        'search': search,
+        'emp_type': emp_type,
+        'designation': designation,
+        'gender': gender,
+        'total': total,
+        'permanent': permanent,
+        'contract': contract,
+        'daily_wager': daily_wager,
+        'male': male,
+        'female': female,
+        'designation_choices': TeacherProfile.DESIGNATION_CHOICES,
     }
     return render(request, 'hr/employee_list.html', context)
 
 
 # ─────────────────────────────────────────────
-# SALARY CONFIG
+# EMPLOYEE DETAIL VIEW
 # ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def employee_detail(request, employee_id):
+    """View full employee profile with salary history."""
+    role = getattr(request.user, 'role', None)
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+        return HttpResponse("Unauthorized", status=403)
+
+    employee = get_object_or_404(TeacherProfile, pk=employee_id)
+    emp_salary = EmployeeSalary.objects.filter(employee=employee).first()
+    salary_history = MonthlySalary.objects.filter(employee=employee).order_by('-year', '-month')[:12]
+
+    context = {
+        'employee': employee,
+        'emp_salary': emp_salary,
+        'salary_history': salary_history,
+        'section': 'employees',
+    }
+    return render(request, 'hr/employee_detail.html', context)
+
+
+# ─────────────────────────────────────────────
+# EMPLOYEE EDIT
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def employee_edit(request, employee_id):
+    """Edit employee basic info."""
+    role = getattr(request.user, 'role', None)
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+        return HttpResponse("Unauthorized", status=403)
+
+    employee = get_object_or_404(TeacherProfile, pk=employee_id)
+
+    if request.method == 'POST':
+        employee.full_name = request.POST.get('full_name', employee.full_name)
+        employee.father_name = request.POST.get('father_name', employee.father_name)
+        employee.phone = request.POST.get('phone', employee.phone)
+        employee.email = request.POST.get('email', employee.email)
+        employee.cnic = request.POST.get('cnic', employee.cnic)
+        employee.address = request.POST.get('address', employee.address)
+        employee.designation = request.POST.get('designation', employee.designation)
+        employee.employment_type = request.POST.get('employment_type', employee.employment_type)
+        employee.gender = request.POST.get('gender', employee.gender)
+        salary_val = request.POST.get('salary', '')
+        if salary_val:
+            employee.salary = float(salary_val)
+        employee.save()
+
+        # Also sync EmployeeSalary basic_salary if it exists
+        emp_salary = EmployeeSalary.objects.filter(employee=employee).first()
+        if emp_salary and employee.salary > 0:
+            emp_salary.basic_salary = employee.salary
+            emp_salary.save()
+
+        messages.success(request, f'Employee {employee.full_name} updated successfully.')
+        return redirect('hr_employee_detail', employee_id=employee.id)
+
+    context = {
+        'employee': employee,
+        'section': 'employees',
+    }
+    return render(request, 'hr/employee_edit.html', context)
+
+
+# ─────────────────────────────────────────────
+# EMPLOYEE DELETE (Soft Delete)
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def employee_delete(request, employee_id):
+    """Soft-delete employee (mark as separated)."""
+    role = getattr(request.user, 'role', None)
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+        return HttpResponse("Unauthorized", status=403)
+
+    employee = get_object_or_404(TeacherProfile, pk=employee_id)
+
+    if request.method == 'POST':
+        employee.is_employee_separated = True
+        employee.save()
+        messages.success(request, f'{employee.full_name} has been marked as separated.')
+        return redirect('hr_employee_list')
+
+    return render(request, 'hr/employee_delete_confirm.html', {
+        'employee': employee,
+        'section': 'employees',
+    })
 
 @login_required(login_url='admin_login')
 def salary_config(request):
@@ -65,6 +199,13 @@ def salary_config(request):
         config = SalaryConfig.objects.create(tax_percentage=0)
 
     if request.method == 'POST':
+        action = request.POST.get('action', 'save')
+        if action == 'reset':
+            config.delete()
+            SalaryConfig.objects.create()
+            messages.success(request, 'Salary configuration reset to defaults.')
+            return redirect('hr_salary_config')
+
         config.default_working_days = int(request.POST.get('default_working_days', 26))
         config.max_allowed_leaves = int(request.POST.get('max_allowed_leaves', 0))
         config.late_deduction_per = int(request.POST.get('late_deduction_per', 3))
@@ -78,15 +219,13 @@ def salary_config(request):
         config.bonus_percentage = float(request.POST.get('bonus_percentage', 0))
         config.save()
         messages.success(request, 'Salary configuration updated.')
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'status': 'ok'})
-        return redirect('admin_console')
+        return redirect('hr_salary_config')
 
     return render(request, 'hr/salary_config.html', {'config': config, 'section': 'config'})
 
 
 # ─────────────────────────────────────────────
-# EMPLOYEE SALARY STRUCTURE (Add/Edit)
+# EMPLOYEE SALARY STRUCTURE (Add/Edit/Delete)
 # ─────────────────────────────────────────────
 
 @login_required(login_url='admin_login')
@@ -103,7 +242,7 @@ def add_employee_salary(request, employee_id):
             sal.employee = employee
             sal.save()
             messages.success(request, f'Salary structure saved for {employee.full_name}.')
-            return redirect('hr_employee_list')
+            return redirect('hr_employee_detail', employee_id=employee.id)
     else:
         form = EmployeeSalaryForm(initial={'employee': employee})
     return render(request, 'hr/employee_salary_form.html', {
@@ -125,12 +264,27 @@ def edit_employee_salary(request, employee_id):
         if form.is_valid():
             form.save()
             messages.success(request, f'Salary structure updated for {employee.full_name}.')
-            return redirect('hr_employee_list')
+            return redirect('hr_employee_detail', employee_id=employee.id)
     else:
         form = EmployeeSalaryForm(instance=sal)
     return render(request, 'hr/employee_salary_form.html', {
         'form': form, 'employee': employee, 'action': 'Edit'
     })
+
+
+@login_required(login_url='admin_login')
+def delete_employee_salary(request, employee_id):
+    """Delete salary structure for an employee."""
+    role = getattr(request.user, 'role', None)
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+        return HttpResponse("Unauthorized", status=403)
+
+    employee = get_object_or_404(TeacherProfile, pk=employee_id)
+    sal = EmployeeSalary.objects.filter(employee=employee).first()
+    if sal:
+        sal.delete()
+        messages.success(request, f'Salary structure deleted for {employee.full_name}.')
+    return redirect('hr_employee_detail', employee_id=employee.id)
 
 
 # ─────────────────────────────────────────────
@@ -144,9 +298,14 @@ def generate_monthly_salary(request):
         return HttpResponse("Unauthorized", status=403)
 
     school = get_user_school(request.user)
-    employees = TeacherProfile.objects.all()
+    employees = TeacherProfile.objects.filter(is_employee_separated=False)
     if school and not request.user.is_superuser:
         employees = employees.filter(school=school)
+
+    month = int(request.POST.get('month', timezone.now().month)) if request.method == 'POST' else int(request.GET.get('month', timezone.now().month))
+    year = int(request.POST.get('year', timezone.now().year)) if request.method == 'POST' else int(request.GET.get('year', timezone.now().year))
+    total_working_days = 26
+    bonus_per_day = 0
 
     if request.method == 'POST':
         month = int(request.POST.get('month', timezone.now().month))
@@ -155,11 +314,16 @@ def generate_monthly_salary(request):
         bonus_per_day = request.POST.get('bonus_per_day', '0')
         bonus_per_day = float(bonus_per_day) if bonus_per_day else 0
 
+        selected_ids = request.POST.getlist('selected_employees')
+
         created_count = 0
         updated_count = 0
+        skipped_count = 0
 
         for emp in employees:
-            # Use teacher's salary from profile directly
+            if selected_ids and str(emp.id) not in selected_ids:
+                continue
+
             emp_salary, _ = EmployeeSalary.objects.get_or_create(
                 employee=emp,
                 defaults={'basic_salary': emp.salary}
@@ -168,26 +332,15 @@ def generate_monthly_salary(request):
                 emp_salary.basic_salary = emp.salary
                 emp_salary.save()
 
-            # Get attendance data for this month
-            att_records = EmployeeAttendance.objects.filter(
-                employee=emp,
-                date__year=year,
-                date__month=month
-            )
-            days_present = att_records.filter(status__in=['present', 'late']).count()
-            days_absent = att_records.filter(status='absent').count()
-            late_days = att_records.filter(status='late').count()
-            leave_days = att_records.filter(status='leave').count()
-
             monthly, created = MonthlySalary.objects.get_or_create(
                 employee=emp, month=month, year=year,
                 defaults={
                     'salary_config': SalaryConfig.objects.first(),
                     'total_working_days': total_working_days,
-                    'days_present': days_present,
-                    'days_absent': days_absent,
-                    'allowed_leaves': leave_days,
-                    'late_coming_days': late_days,
+                    'days_absent': 0,
+                    'unpaid_leaves': 0,
+                    'paid_leaves': 0,
+                    'late_coming_days': 0,
                     'basic_salary': emp.salary,
                     'increment': 0,
                     'bonus_per_day': bonus_per_day,
@@ -196,32 +349,40 @@ def generate_monthly_salary(request):
             if created:
                 created_count += 1
             else:
-                monthly.total_working_days = total_working_days
-                monthly.days_present = days_present
-                monthly.days_absent = days_absent
-                monthly.allowed_leaves = leave_days
-                monthly.late_coming_days = late_days
-                monthly.basic_salary = emp.salary
-                monthly.bonus_per_day = bonus_per_day
-                monthly.salary_config = SalaryConfig.objects.first()
-                monthly.save()
-                updated_count += 1
+                skipped_count += 1
 
         month_name = calendar.month_name[month]
-        messages.success(request, f'Salary generated for {month_name} {year}: {created_count} new, {updated_count} updated.')
-        return redirect('admin_console')
+        messages.success(request, f'Salary generated for {month_name} {year}: {created_count} new, {skipped_count} already existed.')
+        return redirect('hr_monthly_salary_list')
 
-    form = GenerateSalaryForm(initial={
-        'month': timezone.now().month,
-        'year': timezone.now().year,
-        'total_working_days': 26,
-        'bonus_per_day': 0,
+    # GET: Show preview
+    preview_data = []
+    for emp in employees:
+        existing = MonthlySalary.objects.filter(employee=emp, month=month, year=year).first()
+        emp_salary = EmployeeSalary.objects.filter(employee=emp).first()
+        basic = emp.salary if emp.salary > 0 else (emp_salary.basic_salary if emp_salary else 0)
+        preview_data.append({
+            'employee': emp,
+            'basic_salary': basic,
+            'exists': existing is not None,
+        })
+
+    form_data = {
+        'month': month,
+        'year': year,
+        'total_working_days': total_working_days,
+        'bonus_per_day': bonus_per_day,
+    }
+    return render(request, 'hr/generate_salary.html', {
+        'form_data': form_data,
+        'preview_data': preview_data,
+        'month': month,
+        'year': year,
     })
-    return render(request, 'hr/generate_salary.html', {'form': form})
 
 
 # ─────────────────────────────────────────────
-# MONTHLY SALARY LIST
+# MONTHLY SALARY LIST (with search, filter, bulk actions)
 # ─────────────────────────────────────────────
 
 @login_required(login_url='admin_login')
@@ -240,12 +401,48 @@ def monthly_salary_list(request):
         year = timezone.now().year
 
     salaries = MonthlySalary.objects.filter(month=month, year=year).select_related('employee')
+
+    # Search
+    search = request.GET.get('search', '').strip()
+    if search:
+        salaries = salaries.filter(
+            Q(employee__full_name__icontains=search) |
+            Q(employee__employee_id__icontains=search)
+        )
+
+    # Filter by pay status
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        salaries = salaries.filter(pay_status=status_filter)
+
     month_name = calendar.month_name[month]
+
+    # Bulk mark paid
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        selected_ids = request.POST.getlist('selected_salaries')
+        if action == 'bulk_mark_paid' and selected_ids:
+            payment_date = request.POST.get('payment_date', str(timezone.now().date()))
+            from datetime import date as dt_date
+            try:
+                pay_date = dt_date.fromisoformat(payment_date)
+            except ValueError:
+                pay_date = timezone.now().date()
+            count = MonthlySalary.objects.filter(pk__in=selected_ids).update(
+                pay_status='paid', payment_date=pay_date
+            )
+            messages.success(request, f'{count} salary records marked as paid.')
+            return redirect(f'/hr/salary/monthly/?month={month}&year={year}')
+        elif action == 'bulk_delete' and selected_ids:
+            count = MonthlySalary.objects.filter(pk__in=selected_ids).delete()[0]
+            messages.success(request, f'{count} salary records deleted.')
+            return redirect(f'/hr/salary/monthly/?month={month}&year={year}')
 
     # Totals
     total_gross = sum(s.gross_salary for s in salaries)
     total_deductions = sum(s.total_deductions for s in salaries)
     total_net = sum(s.net_salary for s in salaries)
+    total_basic = sum(s.basic_salary for s in salaries)
 
     context = {
         'salaries': salaries,
@@ -255,6 +452,9 @@ def monthly_salary_list(request):
         'total_gross': total_gross,
         'total_deductions': total_deductions,
         'total_net': total_net,
+        'total_basic': total_basic,
+        'search': search,
+        'status_filter': status_filter,
     }
     return render(request, 'hr/monthly_salary_list.html', context)
 
@@ -272,17 +472,32 @@ def edit_monthly_salary(request, pk):
     salary = get_object_or_404(MonthlySalary, pk=pk)
 
     if request.method == 'POST':
-        salary.days_present = int(request.POST.get('days_present', salary.days_present))
+        salary.total_working_days = int(request.POST.get('total_working_days', salary.total_working_days))
         salary.days_absent = int(request.POST.get('days_absent', salary.days_absent))
-        salary.allowed_leaves = int(request.POST.get('allowed_leaves', salary.allowed_leaves))
+        salary.paid_leaves = int(request.POST.get('paid_leaves', salary.paid_leaves))
+        salary.unpaid_leaves = int(request.POST.get('unpaid_leaves', salary.unpaid_leaves))
         salary.late_coming_days = int(request.POST.get('late_coming_days', salary.late_coming_days))
         salary.increment = float(request.POST.get('increment', salary.increment))
+        salary.housing_allowance = float(request.POST.get('housing_allowance', salary.housing_allowance))
+        salary.medical_allowance = float(request.POST.get('medical_allowance', salary.medical_allowance))
+        salary.transport_allowance = float(request.POST.get('transport_allowance', salary.transport_allowance))
+        salary.fuel_allowance = float(request.POST.get('fuel_allowance', salary.fuel_allowance))
+        salary.other_allowance = float(request.POST.get('other_allowance', salary.other_allowance))
         salary.advance_deduction = float(request.POST.get('advance_deduction', salary.advance_deduction))
         salary.provident_fund = float(request.POST.get('provident_fund', salary.provident_fund))
         salary.security_deduction = float(request.POST.get('security_deduction', salary.security_deduction))
         salary.other_deduction = float(request.POST.get('other_deduction', salary.other_deduction))
+        salary.overtime_hours = float(request.POST.get('overtime_hours', salary.overtime_hours))
+        salary.overtime_rate = float(request.POST.get('overtime_rate', salary.overtime_rate))
         salary.remarks = request.POST.get('remarks', salary.remarks)
         salary.pay_status = request.POST.get('pay_status', salary.pay_status)
+        payment_date = request.POST.get('payment_date', '')
+        if payment_date:
+            from datetime import date as dt_date
+            try:
+                salary.payment_date = dt_date.fromisoformat(payment_date)
+            except ValueError:
+                pass
         salary.save()
         messages.success(request, f'Salary updated for {salary.employee.full_name}.')
         return redirect('hr_monthly_salary_list')
@@ -291,7 +506,66 @@ def edit_monthly_salary(request, pk):
 
 
 # ─────────────────────────────────────────────
-# SALARY SLIP PDF (HTML-based for download)
+# DELETE MONTHLY SALARY
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def delete_monthly_salary(request, pk):
+    """Delete a monthly salary record."""
+    role = getattr(request.user, 'role', None)
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+        return HttpResponse("Unauthorized", status=403)
+
+    salary = get_object_or_404(MonthlySalary, pk=pk)
+    month = salary.month
+    year = salary.year
+    name = salary.employee.full_name
+    salary.delete()
+    messages.success(request, f'Salary record deleted for {name}.')
+    return redirect(f'/hr/salary/monthly/?month={month}&year={year}')
+
+
+# ─────────────────────────────────────────────
+# CSV EXPORT
+# ─────────────────────────────────────────────
+
+@login_required(login_url='admin_login')
+def export_salary_csv(request):
+    """Export salary sheet as CSV for bank transfer."""
+    role = getattr(request.user, 'role', None)
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+        return HttpResponse("Unauthorized", status=403)
+
+    month = int(request.GET.get('month', timezone.now().month))
+    year = int(request.GET.get('year', timezone.now().year))
+
+    salaries = MonthlySalary.objects.filter(month=month, year=year).select_related('employee')
+    month_name = calendar.month_name[month]
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="Salary_{month_name}_{year}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Employee Name', 'Employee ID', 'Designation', 'Bank Name', 'Account Number',
+        'Basic Salary', 'Total Allowances', 'Gross Salary', 'Total Deductions',
+        'Net Salary', 'Pay Status'
+    ])
+    for s in salaries:
+        emp = s.employee
+        emp_sal = EmployeeSalary.objects.filter(employee=emp).first()
+        writer.writerow([
+            emp.full_name, emp.employee_id or '', emp.designation or '',
+            emp_sal.bank_name if emp_sal else '', emp_sal.bank_account if emp_sal else '',
+            s.basic_salary, s.total_allowances, s.gross_salary,
+            s.total_deductions, s.net_salary, s.get_pay_status_display()
+        ])
+
+    return response
+
+
+# ─────────────────────────────────────────────
+# SALARY SLIP (with dynamic school name)
 # ─────────────────────────────────────────────
 
 @login_required(login_url='admin_login')
@@ -300,12 +574,14 @@ def salary_slip(request, pk):
     employee = salary.employee
     emp_salary = EmployeeSalary.objects.filter(employee=employee).first()
     month_name = calendar.month_name[salary.month]
+    school = getattr(employee, 'school', None)
 
     context = {
         'salary': salary,
         'employee': employee,
         'emp_salary': emp_salary,
         'month_name': month_name,
+        'school': school,
     }
     return render(request, 'hr/salary_slip.html', context)
 
@@ -317,12 +593,14 @@ def salary_slip_pdf(request, pk):
     employee = salary.employee
     emp_salary = EmployeeSalary.objects.filter(employee=employee).first()
     month_name = calendar.month_name[salary.month]
+    school = getattr(employee, 'school', None)
 
     context = {
         'salary': salary,
         'employee': employee,
         'emp_salary': emp_salary,
         'month_name': month_name,
+        'school': school,
         'print_mode': True,
     }
     html_string = render(request, 'hr/salary_slip_print.html', context).content.decode('utf-8')
@@ -342,66 +620,98 @@ def salary_slip_all(request):
     salaries = MonthlySalary.objects.filter(month=month, year=year).select_related('employee')
     month_name = calendar.month_name[month]
 
+    # Get school from first employee
+    school = None
+    if salaries:
+        school = getattr(salaries[0].employee, 'school', None)
+
     context = {
         'salaries': salaries,
         'month_name': month_name,
         'year': year,
         'print_all': True,
+        'school': school,
     }
     return render(request, 'hr/salary_slip_print_all.html', context)
 
 
 # ─────────────────────────────────────────────
-# EMPLOYEE ATTENDANCE
+# MONTHLY ATTENDANCE SUMMARY (replaces daily attendance)
 # ─────────────────────────────────────────────
 
 @login_required(login_url='admin_login')
-def employee_attendance(request):
+def monthly_attendance_summary(request):
+    """HR enters monthly attendance summary: absents, paid leaves, unpaid leaves, late days."""
     role = getattr(request.user, 'role', None)
     if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
         return HttpResponse("Unauthorized", status=403)
 
     school = get_user_school(request.user)
-    employees = TeacherProfile.objects.all()
+    employees = TeacherProfile.objects.filter(is_employee_separated=False)
     if school and not request.user.is_superuser:
         employees = employees.filter(school=school)
 
-    today = timezone.now().date()
-    selected_date = request.GET.get('date', str(today))
-    try:
-        from datetime import date as dt_date
-        att_date = dt_date.fromisoformat(selected_date)
-    except ValueError:
-        att_date = today
+    now = timezone.now()
+    month = int(request.GET.get('month', now.month))
+    year = int(request.GET.get('year', now.year))
+    month_name = calendar.month_name[month]
 
-    # Get or create attendance records for the selected date
-    existing = {
-        att.employee_id: att
-        for att in EmployeeAttendance.objects.filter(date=att_date)
-    }
+    config = SalaryConfig.objects.first()
+    total_working_days = config.default_working_days if config else 26
+
+    # Get existing monthly salary records for this month
+    existing = {}
+    for ms in MonthlySalary.objects.filter(month=month, year=year, employee__in=employees):
+        existing[ms.employee_id] = ms
 
     if request.method == 'POST':
+        created_count = 0
+        updated_count = 0
+
         for emp in employees:
-            status = request.POST.get(f'status_{emp.id}', 'present')
-            check_in = request.POST.get(f'check_in_{emp.id}', '')
-            check_out = request.POST.get(f'check_out_{emp.id}', '')
+            days_absent = int(request.POST.get(f'absent_{emp.id}', 0))
+            paid_leaves = int(request.POST.get(f'paid_leaves_{emp.id}', 0))
+            unpaid_leaves = int(request.POST.get(f'unpaid_leaves_{emp.id}', 0))
+            late_days = int(request.POST.get(f'late_{emp.id}', 0))
             remarks = request.POST.get(f'remarks_{emp.id}', '')
 
-            att, created = EmployeeAttendance.objects.update_or_create(
-                employee=emp, date=att_date,
+            # Calculate days present
+            days_present = max(0, total_working_days - days_absent - unpaid_leaves)
+
+            monthly, created = MonthlySalary.objects.get_or_create(
+                employee=emp, month=month, year=year,
                 defaults={
-                    'status': status,
-                    'check_in': check_in if check_in else None,
-                    'check_out': check_out if check_out else None,
+                    'salary_config': config,
+                    'total_working_days': total_working_days,
+                    'days_absent': days_absent,
+                    'paid_leaves': paid_leaves,
+                    'unpaid_leaves': unpaid_leaves,
+                    'late_coming_days': late_days,
                     'remarks': remarks,
                 }
             )
-        messages.success(request, f'Attendance saved for {att_date}.')
-        return redirect(f'/hr/attendance/?date={att_date}')
+            if created:
+                created_count += 1
+            else:
+                monthly.days_absent = days_absent
+                monthly.paid_leaves = paid_leaves
+                monthly.unpaid_leaves = unpaid_leaves
+                monthly.late_coming_days = late_days
+                monthly.total_working_days = total_working_days
+                monthly.remarks = remarks
+                monthly.save()
+                updated_count += 1
+
+        messages.success(request, f'Attendance saved for {month_name} {year}: {created_count} new, {updated_count} updated.')
+        return redirect(f'/hr/attendance/monthly/?month={month}&year={year}')
 
     context = {
         'employees': employees,
-        'selected_date': att_date,
+        'month': month,
+        'year': year,
+        'month_name': month_name,
+        'total_working_days': total_working_days,
         'existing': existing,
+        'section': 'attendance',
     }
-    return render(request, 'hr/employee_attendance.html', context)
+    return render(request, 'hr/monthly_attendance_summary.html', context)

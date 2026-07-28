@@ -138,9 +138,15 @@
                 </a>
 
                 <div class="nav-label">Attendance</div>
-                <a href="{% url 'hr_employee_attendance' %}" {% if section == 'attendance' %}class="active"{% endif %}>
+                <a href="{% url 'hr_monthly_attendance' %}" {% if section == 'attendance' %}class="active"{% endif %}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                    Mark Attendance
+                    Monthly Attendance
+                </a>
+
+                <div class="nav-label">Employees</div>
+                <a href="{% url 'hr_employee_list' %}" {% if section == 'employees' %}class="active"{% endif %}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    Employee List
                 </a>
             </nav>
         </aside>

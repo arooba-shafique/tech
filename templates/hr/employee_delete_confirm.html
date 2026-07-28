@@ -1,0 +1,30 @@
+{% extends "hr/base_hr.html" %}
+
+{% block content %}
+<div class="hr-topbar">
+    <div>
+        <h1>Delete Employee — {{ employee.full_name }}</h1>
+        <div class="breadcrumb">HR Module / Employees / Delete</div>
+    </div>
+</div>
+
+<div class="card" style="max-width:600px;margin:0 auto;text-align:center;padding:40px;">
+    <div style="width:60px;height:60px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Are you sure?</h2>
+    <p style="color:var(--text-muted);margin-bottom:8px;">This will mark <strong>{{ employee.full_name }}</strong> as separated.</p>
+    <p style="color:var(--text-muted);margin-bottom:24px;font-size:12px;">The employee will be hidden from active lists but their salary history will be preserved.</p>
+
+    <div style="display:flex;gap:10px;justify-content:center;">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" style="padding:10px 24px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Yes, Mark as Separated
+            </button>
+        </form>
+        <a href="{% url 'hr_employee_detail' employee.id %}" class="btn btn-ghost" style="padding:10px 24px;">Cancel</a>
+    </div>
+</div>
+{% endblock %}

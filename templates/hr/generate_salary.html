@@ -9,50 +9,91 @@
 </div>
 
 <div class="card">
+    <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:20px;">
+        <div class="form-group" style="margin:0;">
+            <label>Month</label>
+            <select name="month" class="form-control" style="min-width:140px;">
+                {% for m in "123456789" %}{% endfor %}
+                <option value="1" {% if month == 1 %}selected{% endif %}>January</option>
+                <option value="2" {% if month == 2 %}selected{% endif %}>February</option>
+                <option value="3" {% if month == 3 %}selected{% endif %}>March</option>
+                <option value="4" {% if month == 4 %}selected{% endif %}>April</option>
+                <option value="5" {% if month == 5 %}selected{% endif %}>May</option>
+                <option value="6" {% if month == 6 %}selected{% endif %}>June</option>
+                <option value="7" {% if month == 7 %}selected{% endif %}>July</option>
+                <option value="8" {% if month == 8 %}selected{% endif %}>August</option>
+                <option value="9" {% if month == 9 %}selected{% endif %}>September</option>
+                <option value="10" {% if month == 10 %}selected{% endif %}>October</option>
+                <option value="11" {% if month == 11 %}selected{% endif %}>November</option>
+                <option value="12" {% if month == 12 %}selected{% endif %}>December</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+            <label>Year</label>
+            <input type="number" name="year" value="{{ year }}" min="2020" max="2030" class="form-control" style="min-width:100px;">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Load Preview</button>
+    </form>
+
     <form method="post">
         {% csrf_token %}
-        <div class="form-row">
-            <div class="form-group">
-                <label>Month</label>
-                <select name="month" class="form-control">
-                    {% for val, label in form.month.field.choices %}
-                    <option value="{{ val }}" {% if val == form.month.value|add:"0" %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Year</label>
-                <input type="number" name="year" value="{{ form.year.value }}" min="2020" max="2030" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Total Working Days</label>
-                <input type="number" name="total_working_days" value="{{ form.total_working_days.value }}" min="1" max="31" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Bonus Per Day (if 0 leaves)</label>
-                <input type="number" name="bonus_per_day" value="{{ form.bonus_per_day.value }}" step="0.01" class="form-control">
-                <small style="color:var(--text-muted);font-size:11px;">If employee has 0 absent days, bonus = per day x working days</small>
-            </div>
-        </div>
+        <input type="hidden" name="month" value="{{ month }}">
+        <input type="hidden" name="year" value="{{ year }}">
+        <input type="hidden" name="total_working_days" value="26">
+        <input type="hidden" name="bonus_per_day" value="0">
+
         <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span style="font-size:13px;font-weight:700;color:#0d9488;">Salary Calculation Formula</span>
+                <span style="font-size:13px;font-weight:700;color:#0d9488;">Preview — Employees below will have salary generated. Already-generated records will be skipped.</span>
             </div>
-            <ul style="font-size:12px;color:#0f766e;margin-left:24px;line-height:1.8;">
-                <li>Per Day Salary = Basic Salary / Total Working Days</li>
-                <li>Leave Deduction = (Absent Days - Allowed Leaves) x Per Day Salary</li>
-                <li>Late Deduction = (Late Days / 3) x (Per Day Salary / 2)</li>
-                <li>Bonus = If 0 absent days → Bonus Per Day x Total Working Days</li>
-                <li>Gross = Basic + Increment + Allowances + Bonus - Leave Ded - Late Ded</li>
-                <li>Tax = Gross x Tax % (from config)</li>
-                <li>Net = Gross - (Leave Ded + Late Ded + Advance + PF + Security + Tax + Other)</li>
-            </ul>
         </div>
-        <button type="submit" class="btn btn-primary" onclick="return confirm('Generate salary for all employees?')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Generate Salary for All Employees
-        </button>
+
+        {% if preview_data %}
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" onchange="document.querySelectorAll('.emp-check').forEach(c=>c.checked=this.checked)"></th>
+                        <th>Sr#</th>
+                        <th>Employee Name</th>
+                        <th>Employee ID</th>
+                        <th>Designation</th>
+                        <th>Basic Salary</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in preview_data %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_employees" value="{{ p.employee.id }}" class="emp-check" {% if p.exists %}disabled{% endif %}></td>
+                        <td>{{ forloop.counter }}</td>
+                        <td style="font-weight:600;">{{ p.employee.full_name }}</td>
+                        <td>{{ p.employee.employee_id|default:"-" }}</td>
+                        <td>{{ p.employee.designation|default:"-" }}</td>
+                        <td class="amount">PKR {{ p.basic_salary|floatformat:0 }}</td>
+                        <td>
+                            {% if p.exists %}
+                            <span class="badge badge-yellow">Already Generated</span>
+                            {% else %}
+                            <span class="badge badge-green">Ready</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top:20px;">
+            <button type="submit" class="btn btn-primary" onclick="return confirm('Generate salary for selected employees?')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Generate Salary for Selected Employees
+            </button>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:var(--text-muted);">No employees found.</div>
+        {% endif %}
     </form>
 </div>
 {% endblock %}

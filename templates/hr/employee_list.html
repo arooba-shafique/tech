@@ -8,11 +8,64 @@
     </div>
 </div>
 
+<!-- Stats -->
 <div class="stat-grid">
     <div class="stat-card">
-        <div class="stat-icon" style="background:#eff6ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <div class="stat-info"><p>Total Employees</p><h3>{{ employees|length }}</h3></div>
+        <div class="stat-icon" style="background:#eff6ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div class="stat-info"><p>Total Employees</p><h3>{{ total }}</h3></div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#f0fdf4;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="stat-info"><p>Permanent</p><h3>{{ permanent }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fffbeb;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg></div>
+        <div class="stat-info"><p>Contract</p><h3>{{ contract }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fdf4ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="stat-info"><p>Daily Wager</p><h3>{{ daily_wager }}</h3></div>
+    </div>
+</div>
+
+<!-- Search & Filter -->
+<div class="card" style="padding:14px 20px;">
+    <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+        <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+            <label>Search</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Name, ID, CNIC, Phone..." class="form-control">
+        </div>
+        <div class="form-group" style="margin:0;">
+            <label>Employment Type</label>
+            <select name="type" class="form-control" style="min-width:140px;">
+                <option value="">All Types</option>
+                <option value="permanent" {% if emp_type == 'permanent' %}selected{% endif %}>Permanent</option>
+                <option value="contract" {% if emp_type == 'contract' %}selected{% endif %}>Contract</option>
+                <option value="daily_wager" {% if emp_type == 'daily_wager' %}selected{% endif %}>Daily Wager</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+            <label>Designation</label>
+            <select name="designation" class="form-control" style="min-width:140px;">
+                <option value="">All</option>
+                {% for val, label in designation_choices %}
+                <option value="{{ val }}" {% if designation == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+            <label>Gender</label>
+            <select name="gender" class="form-control" style="min-width:100px;">
+                <option value="">All</option>
+                <option value="M" {% if gender == 'M' %}selected{% endif %}>Male</option>
+                <option value="F" {% if gender == 'F' %}selected{% endif %}>Female</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        {% if search or emp_type or designation or gender %}
+        <a href="{% url 'hr_employee_list' %}" class="btn btn-ghost btn-sm">Clear</a>
+        {% endif %}
+    </form>
 </div>
 
 <div class="card">
@@ -42,19 +95,22 @@
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>
-                        <div style="font-weight:600;">{{ emp.full_name }}</div>
-                        <div style="font-size:11px;color:var(--text-muted);">ID: {{ emp.employee_id|default:"-" }}</div>
+                        <a href="{% url 'hr_employee_detail' emp.id %}" style="text-decoration:none;color:inherit;">
+                            <div style="font-weight:600;">{{ emp.full_name }}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">ID: {{ emp.employee_id|default:"-" }}</div>
+                        </a>
                     </td>
                     <td>{{ emp.father_name|default:"-" }}</td>
                     <td>{{ emp.cnic|default:"-" }}</td>
                     <td>{{ emp.get_designation_display|default:emp.designation|default:"-" }}</td>
-                    <td><span class="badge badge-blue">{{ emp.employment_type }}</span></td>
-                    <td><span class="badge badge-green">{{ emp.salary_type }}</span></td>
+                    <td><span class="badge badge-blue">{{ emp.employment_type_display }}</span></td>
+                    <td><span class="badge badge-green">{{ emp.salary_type_display }}</span></td>
                     <td>{{ emp.working_days }}</td>
                     <td class="amount">PKR {{ emp.basic_salary|floatformat:0 }}</td>
                     <td>{{ emp.phone|default:"-" }}</td>
                     <td>{{ emp.get_gender_display }}</td>
                     <td style="text-align:center;white-space:nowrap;">
+                        <a href="{% url 'hr_employee_detail' emp.id %}" class="btn btn-primary btn-sm">View</a>
                         {% if emp.basic_salary %}
                         <a href="{% url 'hr_edit_employee_salary' emp.id %}" class="btn btn-warning btn-sm">Edit Salary</a>
                         {% else %}
@@ -63,7 +119,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted);">No employees found. Add teachers first from the main admin panel.</td></tr>
+                <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted);">No employees found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

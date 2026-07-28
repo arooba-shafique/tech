@@ -1,0 +1,205 @@
+{% extends "hr/base_hr.html" %}
+
+{% block content %}
+<div class="hr-topbar">
+    <div>
+        <h1>{{ employee.full_name }}</h1>
+        <div class="breadcrumb">HR Module / Employees / Profile</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'hr_employee_edit' employee.id %}" class="btn btn-warning">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Employee
+        </a>
+        {% if emp_salary %}
+        <a href="{% url 'hr_edit_employee_salary' employee.id %}" class="btn btn-warning">Edit Salary</a>
+        {% else %}
+        <a href="{% url 'hr_add_employee_salary' employee.id %}" class="btn btn-primary">Set Salary</a>
+        {% endif %}
+        <a href="{% url 'hr_employee_delete' employee.id %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<!-- Employee Info Cards -->
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#eff6ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="stat-info"><p>Employee ID</p><h3 style="font-size:16px;">{{ employee.employee_id|default:"-" }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#f0fdf4;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="stat-info"><p>Basic Salary</p><h3 class="amount" style="font-size:16px;">PKR {{ emp_salary.basic_salary|floatformat:0|default:"-" }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fffbeb;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+        <div class="stat-info"><p>Employment Type</p><h3 style="font-size:16px;">{{ employee.employment_type|title }}</h3></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:{% if employee.is_employee_separated %}#fef2f2{% else %}#f0fdf4{% endif %};"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{% if employee.is_employee_separated %}#dc2626{% else %}#16a34a{% endif %}" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></svg></div>
+        <div class="stat-info"><p>Status</p><h3 style="font-size:16px;">{% if employee.is_employee_separated %}Separated{% else %}Active{% endif %}</h3></div>
+    </div>
+</div>
+
+<!-- Personal Details -->
+<div class="card">
+    <div class="card-header">
+        <h2>Personal Details</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;">
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Full Name</div>
+            <div style="font-size:14px;font-weight:600;margin-top:4px;">{{ employee.full_name }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Father Name</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.father_name|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">CNIC</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.cnic|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Gender</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.get_gender_display }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Date of Birth</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.date_of_birth|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Phone</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.phone|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Email</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.email|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Address</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.address|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Designation</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.get_designation_display|default:employee.designation|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Joining Date</div>
+            <div style="font-size:14px;margin-top:4px;">{{ employee.joining_date|default:"-" }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Salary Structure -->
+{% if emp_salary %}
+<div class="card">
+    <div class="card-header">
+        <h2>Salary Structure</h2>
+        <div style="display:flex;gap:8px;">
+            <a href="{% url 'hr_edit_employee_salary' employee.id %}" class="btn btn-warning btn-sm">Edit</a>
+            <form method="post" action="{% url 'hr_delete_employee_salary' employee.id %}" style="display:inline;" onsubmit="return confirm('Delete salary structure?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Basic Salary</div>
+            <div style="font-size:16px;font-weight:700;" class="amount">PKR {{ emp_salary.basic_salary|floatformat:0 }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Salary Type</div>
+            <div style="font-size:14px;">{{ emp_salary.get_salary_type_display }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Employment Type</div>
+            <div style="font-size:14px;">{{ emp_salary.get_employment_type_display }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Working Days/Week</div>
+            <div style="font-size:14px;">{{ emp_salary.working_days_per_week }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Housing Allowance</div>
+            <div style="font-size:14px;" class="amount">PKR {{ emp_salary.housing_allowance|floatformat:0 }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Medical Allowance</div>
+            <div style="font-size:14px;" class="amount">PKR {{ emp_salary.medical_allowance|floatformat:0 }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Transport Allowance</div>
+            <div style="font-size:14px;" class="amount">PKR {{ emp_salary.transport_allowance|floatformat:0 }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Fuel Allowance</div>
+            <div style="font-size:14px;" class="amount">PKR {{ emp_salary.fuel_allowance|floatformat:0 }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Bank Name</div>
+            <div style="font-size:14px;">{{ emp_salary.bank_name|default:"-" }}</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:var(--text-muted);">Account Number</div>
+            <div style="font-size:14px;">{{ emp_salary.bank_account|default:"-" }}</div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:30px;">
+    <p style="color:var(--text-muted);margin-bottom:12px;">No salary structure defined for this employee.</p>
+    <a href="{% url 'hr_add_employee_salary' employee.id %}" class="btn btn-primary">Set Salary Structure</a>
+</div>
+{% endif %}
+
+<!-- Salary History -->
+{% if salary_history %}
+<div class="card">
+    <div class="card-header">
+        <h2>Salary History (Last 12 Months)</h2>
+    </div>
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Paid Leave</th>
+                    <th>Unpaid Leave</th>
+                    <th>Late</th>
+                    <th>Gross</th>
+                    <th>Deductions</th>
+                    <th>Net</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in salary_history %}
+                <tr>
+                    <td>{{ s.get_month_display }} {{ s.year }}</td>
+                    <td><span class="badge badge-green">{{ s.days_present }}</span></td>
+                    <td><span class="badge badge-red">{{ s.days_absent }}</span></td>
+                    <td>{{ s.paid_leaves }}</td>
+                    <td>{{ s.unpaid_leaves }}</td>
+                    <td>{{ s.late_coming_days }}</td>
+                    <td class="amount">{{ s.gross_salary|floatformat:0 }}</td>
+                    <td class="amount" style="color:var(--red);">{{ s.total_deductions|floatformat:0 }}</td>
+                    <td class="amount" style="color:var(--green);font-weight:700;">{{ s.net_salary|floatformat:0 }}</td>
+                    <td>
+                        {% if s.pay_status == 'paid' %}
+                        <span class="badge badge-green">Paid</span>
+                        {% elif s.pay_status == 'partial' %}
+                        <span class="badge badge-yellow">Partial</span>
+                        {% else %}
+                        <span class="badge badge-red">Unpaid</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

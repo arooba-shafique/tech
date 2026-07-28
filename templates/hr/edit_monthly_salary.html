@@ -17,30 +17,58 @@
         </div>
     </div>
 
-    <form method="post">
+    <form method="post" id="salaryForm">
         {% csrf_token %}
 
         <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;">Attendance</h3>
         <div class="form-row">
             <div class="form-group">
                 <label>Total Working Days</label>
-                <input type="number" name="total_working_days" value="{{ salary.total_working_days }}" class="form-control" readonly style="background:#f3f4f6;">
-            </div>
-            <div class="form-group">
-                <label>Days Present</label>
-                <input type="number" name="days_present" value="{{ salary.days_present }}" min="0" class="form-control">
+                <input type="number" name="total_working_days" id="total_working_days" value="{{ salary.total_working_days }}" min="1" max="31" class="form-control">
             </div>
             <div class="form-group">
                 <label>Days Absent</label>
-                <input type="number" name="days_absent" value="{{ salary.days_absent }}" min="0" class="form-control">
+                <input type="number" name="days_absent" id="days_absent" value="{{ salary.days_absent }}" min="0" class="form-control" onchange="calcPresent()">
             </div>
             <div class="form-group">
-                <label>Allowed Leaves</label>
-                <input type="number" name="allowed_leaves" value="{{ salary.allowed_leaves }}" min="0" class="form-control">
+                <label>Paid Leaves</label>
+                <input type="number" name="paid_leaves" id="paid_leaves" value="{{ salary.paid_leaves }}" min="0" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Unpaid Leaves</label>
+                <input type="number" name="unpaid_leaves" id="unpaid_leaves" value="{{ salary.unpaid_leaves }}" min="0" class="form-control" onchange="calcPresent()">
             </div>
             <div class="form-group">
                 <label>Late Coming Days</label>
                 <input type="number" name="late_coming_days" value="{{ salary.late_coming_days }}" min="0" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Days Present (auto)</label>
+                <input type="number" id="days_present_display" value="{{ salary.days_present }}" class="form-control" readonly style="background:#f3f4f6;font-weight:700;">
+            </div>
+        </div>
+
+        <h3 style="font-size:14px;font-weight:700;margin:16px 0 12px;">Allowances</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Housing Allowance (PKR)</label>
+                <input type="number" name="housing_allowance" value="{{ salary.housing_allowance }}" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Medical Allowance (PKR)</label>
+                <input type="number" name="medical_allowance" value="{{ salary.medical_allowance }}" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Transport Allowance (PKR)</label>
+                <input type="number" name="transport_allowance" value="{{ salary.transport_allowance }}" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Fuel Allowance (PKR)</label>
+                <input type="number" name="fuel_allowance" value="{{ salary.fuel_allowance }}" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Other Allowance (PKR)</label>
+                <input type="number" name="other_allowance" value="{{ salary.other_allowance }}" step="0.01" class="form-control">
             </div>
         </div>
 
@@ -51,8 +79,12 @@
                 <input type="number" name="increment" value="{{ salary.increment }}" step="0.01" class="form-control">
             </div>
             <div class="form-group">
-                <label>Bonus Per Day (PKR)</label>
-                <input type="number" name="bonus_per_day" value="{{ salary.bonus_per_day }}" step="0.01" class="form-control">
+                <label>Overtime Hours</label>
+                <input type="number" name="overtime_hours" value="{{ salary.overtime_hours }}" step="0.01" min="0" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Overtime Rate (PKR/hour)</label>
+                <input type="number" name="overtime_rate" value="{{ salary.overtime_rate }}" step="0.01" min="0" class="form-control">
             </div>
         </div>
 
@@ -86,6 +118,10 @@
                     <option value="partial" {% if salary.pay_status == 'partial' %}selected{% endif %}>Partial</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>Payment Date</label>
+                <input type="date" name="payment_date" value="{{ salary.payment_date|date:'Y-m-d'|default:'' }}" class="form-control">
+            </div>
             <div class="form-group" style="grid-column:span 2;">
                 <label>Remarks</label>
                 <input type="text" name="remarks" value="{{ salary.remarks }}" class="form-control">
@@ -113,4 +149,14 @@
         </div>
     </form>
 </div>
+
+<script>
+function calcPresent() {
+    var working = parseInt(document.getElementById('total_working_days').value) || 0;
+    var absent = parseInt(document.getElementById('days_absent').value) || 0;
+    var unpaid = parseInt(document.getElementById('unpaid_leaves').value) || 0;
+    var present = Math.max(0, working - absent - unpaid);
+    document.getElementById('days_present_display').value = present;
+}
+</script>
 {% endblock %}

@@ -7,6 +7,10 @@
         <div class="breadcrumb">HR Module / Salary Sheet</div>
     </div>
     <div style="display:flex;gap:8px;">
+        <a href="{% url 'hr_export_salary_csv' %}?month={{ month }}&year={{ year }}" class="btn btn-success" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+        </a>
         <a href="{% url 'hr_salary_slip_all' %}?month={{ month }}&year={{ year }}" class="btn btn-primary" target="_blank">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Print All Slips
@@ -20,8 +24,7 @@
         <div class="form-group" style="margin:0;">
             <label>Month</label>
             <select name="month" class="form-control" style="min-width:140px;">
-                {% for m in "123456789" %}
-                {% endfor %}
+                {% for m in "123456789" %}{% endfor %}
                 <option value="1" {% if month == 1 %}selected{% endif %}>January</option>
                 <option value="2" {% if month == 2 %}selected{% endif %}>February</option>
                 <option value="3" {% if month == 3 %}selected{% endif %}>March</option>
@@ -40,7 +43,23 @@
             <label>Year</label>
             <input type="number" name="year" value="{{ year }}" min="2020" max="2030" class="form-control" style="min-width:100px;">
         </div>
+        <div class="form-group" style="margin:0;">
+            <label>Search</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Employee name or ID..." class="form-control" style="min-width:200px;">
+        </div>
+        <div class="form-group" style="margin:0;">
+            <label>Status</label>
+            <select name="status" class="form-control" style="min-width:120px;">
+                <option value="">All</option>
+                <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                <option value="partial" {% if status_filter == 'partial' %}selected{% endif %}>Partial</option>
+                <option value="unpaid" {% if status_filter == 'unpaid' %}selected{% endif %}>Unpaid</option>
+            </select>
+        </div>
         <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        {% if search or status_filter %}
+        <a href="{% url 'hr_monthly_salary_list' %}?month={{ month }}&year={{ year }}" class="btn btn-ghost btn-sm">Clear</a>
+        {% endif %}
     </form>
 </div>
 
@@ -64,83 +83,128 @@
     </div>
 </div>
 
-<!-- Salary Sheet Table -->
-<div class="card">
-    <div class="table-scroll">
-        <table style="min-width:1200px;">
-            <thead>
-                <tr>
-                    <th>Sr#</th>
-                    <th>Emp. Name</th>
-                    <th>Designation</th>
-                    <th>Basic</th>
-                    <th>Present</th>
-                    <th>Absent</th>
-                    <th>Leave</th>
-                    <th>Late</th>
-                    <th>Per Day</th>
-                    <th>Allow.</th>
-                    <th>Gross</th>
-                    <th>Deductions</th>
-                    <th>Net Payable</th>
-                    <th>Status</th>
-                    <th style="text-align:center;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in salaries %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>
-                        <div style="font-weight:600;font-size:13px;">{{ s.employee.full_name }}</div>
-                        <div style="font-size:11px;color:var(--text-muted);">{{ s.employee.employee_id|default:"-" }}</div>
-                    </td>
-                    <td>{{ s.employee.designation|default:"-" }}</td>
-                    <td class="amount">{{ s.basic_salary|floatformat:0 }}</td>
-                    <td><span class="badge badge-green">{{ s.days_present }}</span></td>
-                    <td><span class="badge badge-red">{{ s.days_absent }}</span></td>
-                    <td><span class="badge badge-yellow">{{ s.allowed_leaves }}</span></td>
-                    <td>{{ s.late_coming_days }}</td>
-                    <td class="amount">{{ s.per_day_salary|floatformat:2 }}</td>
-                    <td class="amount">{{ s.total_allowances|floatformat:0|default:"-" }}</td>
-                    <td class="amount" style="font-weight:700;">{{ s.gross_salary|floatformat:0 }}</td>
-                    <td class="amount" style="color:var(--red);">{{ s.total_deductions|floatformat:0 }}</td>
-                    <td class="amount" style="font-weight:700;color:var(--green);">{{ s.net_salary|floatformat:0 }}</td>
-                    <td>
-                        {% if s.pay_status == 'paid' %}
-                        <span class="badge badge-green">Paid</span>
-                        {% elif s.pay_status == 'partial' %}
-                        <span class="badge badge-yellow">Partial</span>
-                        {% else %}
-                        <span class="badge badge-red">Unpaid</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align:center;white-space:nowrap;">
-                        <a href="{% url 'hr_edit_monthly_salary' s.pk %}" class="btn btn-warning btn-sm">Edit</a>
-                        <a href="{% url 'hr_salary_slip' s.pk %}" class="btn btn-primary btn-sm" target="_blank">Slip</a>
-                        <a href="{% url 'hr_salary_slip_pdf' s.pk %}" class="btn btn-success btn-sm" target="_blank">PDF</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="15" style="text-align:center;padding:40px;color:var(--text-muted);">
-                    No salary records found for {{ month_name }} {{ year }}. <a href="{% url 'hr_generate_salary' %}">Generate Salary</a>
-                </td></tr>
-                {% endfor %}
-            </tbody>
-            {% if salaries %}
-            <tfoot>
-                <tr style="font-weight:700;background:#f9fafb;">
-                    <td colspan="3" style="text-align:right;">Total</td>
-                    <td class="amount">{{ total_basic|floatformat:0|default:"-" }}</td>
-                    <td colspan="6"></td>
-                    <td class="amount" style="font-weight:700;">{{ total_gross|floatformat:0 }}</td>
-                    <td class="amount" style="color:var(--red);">{{ total_deductions|floatformat:0 }}</td>
-                    <td class="amount" style="font-weight:700;color:var(--green);">{{ total_net|floatformat:0 }}</td>
-                    <td colspan="2"></td>
-                </tr>
-            </tfoot>
-            {% endif %}
-        </table>
+<!-- Bulk Actions Form -->
+<form method="post" id="bulkForm">
+    {% csrf_token %}
+    <input type="hidden" name="action" id="bulkAction" value="">
+    <input type="hidden" name="payment_date" id="bulkPaymentDate" value="">
+
+    <!-- Bulk action bar (shown when checkboxes selected) -->
+    <div id="bulkBar" style="display:none;background:var(--primary);color:#fff;padding:10px 20px;border-radius:10px;margin-bottom:16px;display:none;align-items:center;gap:16px;">
+        <span id="selectedCount" style="font-weight:600;">0 selected</span>
+        <div style="display:flex;gap:8px;">
+            <button type="button" class="btn btn-success btn-sm" onclick="bulkMarkPaid()">Mark as Paid</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="bulkDelete()">Delete Selected</button>
+        </div>
     </div>
-</div>
+
+    <!-- Salary Sheet Table -->
+    <div class="card">
+        <div class="table-scroll">
+            <table style="min-width:1300px;">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
+                        <th>Sr#</th>
+                        <th>Emp. Name</th>
+                        <th>Designation</th>
+                        <th>Basic</th>
+                        <th>Absent</th>
+                        <th>P. Leave</th>
+                        <th>U. Leave</th>
+                        <th>Late</th>
+                        <th>Per Day</th>
+                        <th>Allow.</th>
+                        <th>Gross</th>
+                        <th>Deductions</th>
+                        <th>Net Payable</th>
+                        <th>Status</th>
+                        <th style="text-align:center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in salaries %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_salaries" value="{{ s.pk }}" class="salary-checkbox" onchange="updateBulkBar()"></td>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <div style="font-weight:600;font-size:13px;">{{ s.employee.full_name }}</div>
+                            <div style="font-size:11px;color:var(--text-muted);">{{ s.employee.employee_id|default:"-" }}</div>
+                        </td>
+                        <td>{{ s.employee.designation|default:"-" }}</td>
+                        <td class="amount">{{ s.basic_salary|floatformat:0 }}</td>
+                        <td><span class="badge badge-red">{{ s.days_absent }}</span></td>
+                        <td>{{ s.paid_leaves }}</td>
+                        <td>{{ s.unpaid_leaves }}</td>
+                        <td>{{ s.late_coming_days }}</td>
+                        <td class="amount">{{ s.per_day_salary|floatformat:2 }}</td>
+                        <td class="amount">{{ s.total_allowances|floatformat:0|default:"-" }}</td>
+                        <td class="amount" style="font-weight:700;">{{ s.gross_salary|floatformat:0 }}</td>
+                        <td class="amount" style="color:var(--red);">{{ s.total_deductions|floatformat:0 }}</td>
+                        <td class="amount" style="font-weight:700;color:var(--green);">{{ s.net_salary|floatformat:0 }}</td>
+                        <td>
+                            {% if s.pay_status == 'paid' %}
+                            <span class="badge badge-green">Paid</span>
+                            {% elif s.pay_status == 'partial' %}
+                            <span class="badge badge-yellow">Partial</span>
+                            {% else %}
+                            <span class="badge badge-red">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center;white-space:nowrap;">
+                            <a href="{% url 'hr_edit_monthly_salary' s.pk %}" class="btn btn-warning btn-sm">Edit</a>
+                            <a href="{% url 'hr_salary_slip' s.pk %}" class="btn btn-primary btn-sm" target="_blank">Slip</a>
+                            <a href="{% url 'hr_salary_slip_pdf' s.pk %}" class="btn btn-success btn-sm" target="_blank">PDF</a>
+                            <a href="{% url 'hr_delete_monthly_salary' s.pk %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this salary record?')">Del</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="16" style="text-align:center;padding:40px;color:var(--text-muted);">
+                        No salary records found for {{ month_name }} {{ year }}. <a href="{% url 'hr_generate_salary' %}">Generate Salary</a>
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if salaries %}
+                <tfoot>
+                    <tr style="font-weight:700;background:#f9fafb;">
+                        <td colspan="4" style="text-align:right;">Total</td>
+                        <td class="amount">{{ total_basic|floatformat:0 }}</td>
+                        <td colspan="7"></td>
+                        <td class="amount" style="font-weight:700;">{{ total_gross|floatformat:0 }}</td>
+                        <td class="amount" style="color:var(--red);">{{ total_deductions|floatformat:0 }}</td>
+                        <td class="amount" style="font-weight:700;color:var(--green);">{{ total_net|floatformat:0 }}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</form>
+
+<script>
+function toggleSelectAll(cb) {
+    document.querySelectorAll('.salary-checkbox').forEach(function(c) { c.checked = cb.checked; });
+    updateBulkBar();
+}
+function updateBulkBar() {
+    var count = document.querySelectorAll('.salary-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = count + ' selected';
+    document.getElementById('bulkBar').style.display = count > 0 ? 'flex' : 'none';
+}
+function bulkMarkPaid() {
+    var date = prompt('Payment date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+    if (date) {
+        document.getElementById('bulkAction').value = 'bulk_mark_paid';
+        document.getElementById('bulkPaymentDate').value = date;
+        document.getElementById('bulkForm').submit();
+    }
+}
+function bulkDelete() {
+    if (confirm('Delete selected salary records?')) {
+        document.getElementById('bulkAction').value = 'bulk_delete';
+        document.getElementById('bulkForm').submit();
+    }
+}
+</script>
 {% endblock %}

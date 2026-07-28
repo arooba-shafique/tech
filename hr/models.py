@@ -112,12 +112,18 @@ class MonthlySalary(models.Model):
     month = models.PositiveIntegerField()  # 1-12
     year = models.PositiveIntegerField()
 
-    # Attendance
+    # Attendance (manually entered by HR)
     total_working_days = models.PositiveIntegerField(default=26)
     days_present = models.PositiveIntegerField(default=0)
     days_absent = models.PositiveIntegerField(default=0)
-    allowed_leaves = models.PositiveIntegerField(default=0)
+    paid_leaves = models.PositiveIntegerField(default=0, help_text="Paid leaves (no salary deduction)")
+    unpaid_leaves = models.PositiveIntegerField(default=0, help_text="Unpaid leaves (salary deducted)")
+    allowed_leaves = models.PositiveIntegerField(default=0, help_text="Auto-calculated from config")
     late_coming_days = models.PositiveIntegerField(default=0)
+
+    # Overtime
+    overtime_hours = models.DecimalField(max_digits=6, decimal_places=2, default=0, help_text="Overtime hours this month")
+    overtime_rate = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Overtime rate per hour")
 
     # Salary breakdown
     basic_salary = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -167,7 +173,7 @@ class MonthlySalary(models.Model):
         """Auto-calculate salary based on config and attendance."""
         emp = self.employee
         emp_salary_obj = EmployeeSalary.objects.filter(employee=emp).first()
-        
+
         # Get basic salary from employee profile (teacher's salary field)
         basic = emp.salary if emp.salary > 0 else (emp_salary_obj.basic_salary if emp_salary_obj else 0)
         self.basic_salary = basic
@@ -177,29 +183,38 @@ class MonthlySalary(models.Model):
         if not config:
             config = SalaryConfig.objects.create()
 
-        # Use config percentages for allowances
-        self.housing_allowance = config.get_housing(basic)
-        self.medical_allowance = config.get_medical(basic)
-        self.transport_allowance = config.get_transport(basic)
-        self.fuel_allowance = config.get_fuel(basic)
+        # Use config percentages for allowances (only if employee salary structure has no overrides)
+        if emp_salary_obj:
+            self.housing_allowance = emp_salary_obj.housing_allowance
+            self.medical_allowance = emp_salary_obj.medical_allowance
+            self.transport_allowance = emp_salary_obj.transport_allowance
+            self.fuel_allowance = emp_salary_obj.fuel_allowance
+        else:
+            self.housing_allowance = config.get_housing(basic)
+            self.medical_allowance = config.get_medical(basic)
+            self.transport_allowance = config.get_transport(basic)
+            self.fuel_allowance = config.get_fuel(basic)
 
         # Calculate per day salary
         working = self.total_working_days if self.total_working_days > 0 else config.default_working_days
         if working > 0:
             self.per_day_salary = basic / working
 
-        # Leave deduction (absent days beyond allowed leaves)
-        allowed = config.max_allowed_leaves
-        excess_absent = max(0, self.days_absent - allowed)
-        self.allowed_leaves = allowed
-        self.leave_deduction = excess_absent * self.per_day_salary
+        # Calculate days_present from working days - absent - unpaid leaves
+        self.days_present = max(0, working - self.days_absent - self.unpaid_leaves)
+
+        # Set allowed leaves from config
+        self.allowed_leaves = config.max_allowed_leaves
+
+        # Leave deduction = unpaid_leaves * per_day_salary
+        self.leave_deduction = self.unpaid_leaves * self.per_day_salary
 
         # Late coming deduction (every N lates = 1 half-day deduction)
         lates_for_deduct = self.late_coming_days // config.late_deduction_per if config.late_deduction_per > 0 else 0
         self.late_coming_deduction = lates_for_deduct * (self.per_day_salary / 2)
 
-        # Bonus
-        if self.days_absent == 0 and self.allowed_leaves == 0:
+        # Bonus: only if 0 absent days AND 0 unpaid leaves
+        if self.days_absent == 0 and self.unpaid_leaves == 0:
             if config.bonus_per_day > 0:
                 self.bonus_amount = config.bonus_per_day * self.total_working_days
             else:
@@ -210,9 +225,13 @@ class MonthlySalary(models.Model):
         # Provident fund
         self.provident_fund = config.get_pf(basic)
 
+        # Overtime
+        overtime_pay = self.overtime_hours * self.overtime_rate if self.overtime_hours > 0 and self.overtime_rate > 0 else 0
+
         # Gross salary
         total_allow = self.housing_allowance + self.medical_allowance + self.transport_allowance + self.fuel_allowance + self.other_allowance
-        self.gross_salary = (basic + self.increment + total_allow + self.bonus_amount - self.leave_deduction - self.late_coming_deduction)
+        self.gross_salary = (basic + self.increment + total_allow + self.bonus_amount + overtime_pay
+                           - self.leave_deduction - self.late_coming_deduction)
 
         # Tax
         self.tax_deduction = config.get_tax(self.gross_salary)
