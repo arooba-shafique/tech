@@ -65,7 +65,7 @@
     <!-- Attendance -->
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;">
         <div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;">
-            <div style="font-size:18px;font-weight:700;color:var(--green);">{{ salary.days_present }}</div>
+            <div style="font-size:18px;font-weight:700;color:var(--green);">{{ salary.present_days }}</div>
             <div style="font-size:10px;color:var(--text-muted);">Present</div>
         </div>
         <div style="text-align:center;padding:10px;background:#fef2f2;border-radius:8px;">
@@ -85,7 +85,7 @@
             <div style="font-size:10px;color:var(--text-muted);">Late Days</div>
         </div>
         <div style="text-align:center;padding:10px;background:#fdf4ff;border-radius:8px;">
-            <div style="font-size:18px;font-weight:700;color:var(--purple);">{{ salary.total_working_days }}</div>
+            <div style="font-size:18px;font-weight:700;color:var(--purple);">{{ salary.days_in_month }}</div>
             <div style="font-size:10px;color:var(--text-muted);">Total Days</div>
         </div>
     </div>

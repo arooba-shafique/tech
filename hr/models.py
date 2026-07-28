@@ -258,6 +258,14 @@ class MonthlySalary(models.Model):
         return (self.housing_allowance + self.medical_allowance +
                 self.transport_allowance + self.fuel_allowance + self.other_allowance)
 
+    @property
+    def days_in_month(self):
+        return calendar.monthrange(self.year, self.month)[1]
+
+    @property
+    def present_days(self):
+        return max(0, calendar.monthrange(self.year, self.month)[1] - self.days_absent)
+
     def __str__(self):
         month_name = calendar.month_name[self.month]
         return f"{self.employee.full_name} - {month_name} {self.year} - {self.net_salary}"
