@@ -110,11 +110,31 @@ def admin_dashboard(request):
             hr_config = SalaryConfig.objects.first()
             if not hr_config:
                 hr_config = SalaryConfig.objects.create()
+
             current_month = today.month
             current_year = today.year
-            hr_salaries = MonthlySalary.objects.filter(month=current_month, year=current_year).select_related('employee')
-            hr_month_name = calendar.month_name[current_month]
+
+            # Salary sheet month/year from GET params
+            sheet_month = int(request.GET.get('month', today.month)) if request.GET.get('month') else today.month
+            sheet_year = int(request.GET.get('year', today.year)) if request.GET.get('year') else today.year
+
+            hr_salaries = MonthlySalary.objects.filter(month=sheet_month, year=sheet_year).select_related('employee')
+            hr_month_name = calendar.month_name[sheet_month]
             hr_months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+
+            # All employees for salary slips dropdown
+            hr_all_employees = teachers_qs.filter(is_employee_separated=False).order_by('full_name')
+
+            # Salary slips: filter by employee if selected
+            slip_selected_employee = request.GET.get('employee_id', '')
+            slip_salaries = None
+            slip_selected_name = ''
+            if request.GET.get('section') == 'salary-slips':
+                slip_salaries = MonthlySalary.objects.filter(month=sheet_month, year=sheet_year).select_related('employee')
+                if slip_selected_employee:
+                    slip_salaries = slip_salaries.filter(employee_id=slip_selected_employee)
+                    emp_obj = hr_all_employees.filter(id=slip_selected_employee).first()
+                    slip_selected_name = emp_obj.full_name if emp_obj else ''
 
             # Monthly attendance data
             hr_attendance_employees = teachers_qs.filter(is_employee_separated=False)
@@ -125,8 +145,8 @@ def admin_dashboard(request):
             context.update({
                 'hr_config': hr_config,
                 'hr_salaries': list(hr_salaries),
-                'hr_month': current_month,
-                'hr_year': current_year,
+                'hr_month': sheet_month,
+                'hr_year': sheet_year,
                 'hr_month_name': hr_month_name,
                 'hr_months': hr_months,
                 'hr_total_gross': sum(s.gross_salary for s in hr_salaries),
@@ -135,6 +155,13 @@ def admin_dashboard(request):
                 'hr_attendance_employees': hr_attendance_employees,
                 'hr_att_existing': hr_att_existing,
                 'hr_att_total_working_days': hr_config.default_working_days,
+                'hr_all_employees': hr_all_employees,
+                'slip_salaries': slip_salaries,
+                'slip_selected_employee': slip_selected_employee,
+                'slip_selected_name': slip_selected_name,
+                'current_month': current_month,
+                'current_year': current_year,
+                'current_month_name': calendar.month_name[current_month],
             })
         except Exception as e:
             import traceback

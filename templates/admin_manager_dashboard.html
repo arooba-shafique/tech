@@ -170,10 +170,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Salary Config
         </a>
-        <a class="nav-item" href="#" onclick="showSection('generate-salary',this);return false;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Generate Salary
-        </a>
         <a class="nav-item" href="#" onclick="showSection('salary-sheet',this);return false;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Salary Sheet
@@ -895,8 +891,25 @@
         <!-- ═══════════ HR: SALARY SHEET ═══════════ -->
         <div id="section-salary-sheet" class="section">
             <div class="table-card">
-                <div class="table-card-header"><h2>Salary Sheet — {{ hr_month_name }} {{ hr_year }}</h2></div>
+                <div class="table-card-header"><h2>Salary Sheet</h2></div>
                 <div style="padding:22px;">
+                    <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;">
+                        <input type="hidden" name="section" value="salary-sheet">
+                        <label style="display:flex;flex-direction:column;gap:5px;">
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Month</span>
+                            <select name="month" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                                {% for m_num, m_name in hr_months %}
+                                <option value="{{ m_num }}" {% if m_num == hr_month %}selected{% endif %}>{{ m_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:5px;">
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Year</span>
+                            <input type="number" name="year" value="{{ hr_year }}" min="2020" max="2030" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:100px;">
+                        </label>
+                        <button type="submit" class="btn btn-primary" style="padding:8px 20px;">Load</button>
+                    </form>
+                    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">{{ hr_month_name }} {{ hr_year }}</div>
                     {% if hr_salaries %}
                     <div class="table-scroll">
                         <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -963,34 +976,77 @@
         <!-- ═══════════ HR: SALARY SLIPS ═══════════ -->
         <div id="section-salary-slips" class="section">
             <div class="table-card">
-                <div class="table-card-header"><h2>Salary Slips — {{ hr_month_name }} {{ hr_year }}</h2></div>
+                <div class="table-card-header"><h2>Salary Slips</h2></div>
                 <div style="padding:22px;">
-                    {% if hr_salaries %}
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
-                        {% for s in hr_salaries %}
-                        <div style="border:1.5px solid var(--border);border-radius:12px;padding:18px;background:var(--white);">
-                            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                                <div style="width:42px;height:42px;border-radius:50%;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0369a1;font-size:15px;">{{ s.employee.full_name|first|upper }}</div>
-                                <div>
-                                    <div style="font-weight:700;font-size:14px;">{{ s.employee.full_name }}</div>
-                                    <div style="font-size:11px;color:var(--text-muted);">{{ s.employee.designation|default:"Teacher" }}</div>
-                                </div>
-                            </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:14px;">
-                                <div><span style="color:var(--text-muted);">Basic:</span> <strong>PKR {{ s.basic_salary|floatformat:0 }}</strong></div>
-                                <div><span style="color:var(--text-muted);">Gross:</span> <strong>PKR {{ s.gross_salary|floatformat:0 }}</strong></div>
-                                <div><span style="color:var(--text-muted);">Deductions:</span> <strong style="color:#dc2626;">PKR {{ s.total_deductions|floatformat:0 }}</strong></div>
-                                <div><span style="color:var(--text-muted);">Net Pay:</span> <strong style="color:#16a34a;">PKR {{ s.net_salary|floatformat:0 }}</strong></div>
-                            </div>
-                            <div style="display:flex;gap:8px;">
-                                <a href="{% url 'hr_salary_slip' s.id %}" class="btn btn-primary" style="padding:5px 12px;font-size:11px;" target="_blank">View Slip</a>
-                                <a href="{% url 'hr_salary_slip_pdf' s.id %}" class="btn btn-yellow" style="padding:5px 12px;font-size:11px;">Print</a>
-                            </div>
-                        </div>
-                        {% endfor %}
+                    <form method="get" id="slip-filter-form" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;">
+                        <input type="hidden" name="section" value="salary-slips">
+                        <label style="display:flex;flex-direction:column;gap:5px;">
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Month</span>
+                            <select name="month" id="slip-month" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                                {% for m_num, m_name in hr_months %}
+                                <option value="{{ m_num }}" {% if m_num == hr_month %}selected{% endif %}>{{ m_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:5px;">
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Year</span>
+                            <input type="number" name="year" value="{{ hr_year }}" min="2020" max="2030" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:100px;">
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:5px;">
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Employee</span>
+                            <select name="employee_id" id="slip-employee" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;min-width:180px;">
+                                <option value="">All Employees</option>
+                                {% for emp in hr_all_employees %}
+                                <option value="{{ emp.id }}" {% if emp.id|stringformat:"s" == slip_selected_employee %}selected{% endif %}>{{ emp.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:5px;">
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Search</span>
+                            <input type="text" id="slip-search" placeholder="Type name..." style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;min-width:150px;">
+                        </label>
+                        <button type="submit" class="btn btn-primary" style="padding:8px 20px;">Load Slips</button>
+                    </form>
+
+                    {% if slip_salaries is not None %}
+                    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">{{ hr_month_name }} {{ hr_year }}{% if slip_selected_employee %} — {{ slip_selected_name }}{% else %} — All Employees{% endif %}</div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                            <thead>
+                                <tr style="background:#f8fafc;">
+                                    <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #e2e8f0;">#</th>
+                                    <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #e2e8f0;">Employee</th>
+                                    <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #e2e8f0;">Designation</th>
+                                    <th style="padding:10px 12px;text-align:right;border-bottom:2px solid #e2e8f0;">Basic</th>
+                                    <th style="padding:10px 12px;text-align:right;border-bottom:2px solid #e2e8f0;">Gross</th>
+                                    <th style="padding:10px 12px;text-align:right;border-bottom:2px solid #e2e8f0;">Deductions</th>
+                                    <th style="padding:10px 12px;text-align:right;border-bottom:2px solid #e2e8f0;">Net Pay</th>
+                                    <th style="padding:10px 12px;text-align:center;border-bottom:2px solid #e2e8f0;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in slip_salaries %}
+                                <tr style="border-bottom:1px solid #f1f5f9;" class="slip-row">
+                                    <td style="padding:10px 12px;">{{ forloop.counter }}</td>
+                                    <td style="padding:10px 12px;font-weight:600;">{{ s.employee.full_name }}</td>
+                                    <td style="padding:10px 12px;color:var(--text-muted);">{{ s.employee.designation|default:"-" }}</td>
+                                    <td style="padding:10px 12px;text-align:right;">PKR {{ s.basic_salary|floatformat:0 }}</td>
+                                    <td style="padding:10px 12px;text-align:right;font-weight:700;">PKR {{ s.gross_salary|floatformat:0 }}</td>
+                                    <td style="padding:10px 12px;text-align:right;color:#dc2626;">PKR {{ s.total_deductions|floatformat:0 }}</td>
+                                    <td style="padding:10px 12px;text-align:right;font-weight:700;color:#16a34a;">PKR {{ s.net_salary|floatformat:0 }}</td>
+                                    <td style="padding:10px 12px;text-align:center;">
+                                        <a href="{% url 'hr_salary_slip' s.id %}" class="btn btn-primary" style="padding:4px 12px;font-size:11px;" target="_blank">View</a>
+                                        <a href="{% url 'hr_salary_slip_pdf' s.id %}" class="btn btn-yellow" style="padding:4px 12px;font-size:11px;">Print</a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px;">No salary slips found for the selected criteria.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                     {% else %}
-                    <div style="text-align:center;color:var(--text-muted);padding:40px;">No slips available for {{ hr_month_name }} {{ hr_year }}.</div>
+                    <div style="text-align:center;color:var(--text-muted);padding:40px;">Select month and employee(s), then click <strong>Load Slips</strong>.</div>
                     {% endif %}
                 </div>
             </div>
@@ -1013,12 +1069,12 @@
 
             <form method="post" action="{% url 'hr_monthly_attendance' %}">
                 {% csrf_token %}
-                <input type="hidden" name="month" value="{{ hr_month }}">
-                <input type="hidden" name="year" value="{{ hr_year }}">
+                <input type="hidden" name="month" value="{{ current_month }}">
+                <input type="hidden" name="year" value="{{ current_year }}">
 
                 <div style="background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;">
                     <div style="padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                        <div style="font-size:14px;font-weight:700;">Attendance for {{ hr_month_name }} {{ hr_year }} (Working Days: {{ hr_att_total_working_days }})</div>
+                        <div style="font-size:14px;font-weight:700;">Attendance for {{ current_month_name }} {{ current_year }} (Working Days: {{ hr_att_total_working_days }})</div>
                         <button type="submit" class="btn btn-primary" style="padding:8px 20px;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Save Attendance

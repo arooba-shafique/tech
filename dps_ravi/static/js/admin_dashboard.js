@@ -30,7 +30,6 @@ var titles = {
     exams:       'Exams',
     results:     'Grades & Results',
     'salary-config':    'Salary Configuration',
-    'generate-salary':  'Generate Salary',
     'salary-sheet':     'Salary Sheet',
     'salary-slips':     'Salary Slips',
     'hr-attendance':    'Monthly Attendance'
@@ -65,7 +64,7 @@ window.addEventListener('load', function () {
     var rawTags = (toast.dataset.section || '').trim();
     var parts   = rawTags.split(/\s+/);
     var section = parts[parts.length - 1];
-    var valid   = ['students','teachers','parents','classes','subjects','assignments','timetable','exams','results','dashboard','salary-config','generate-salary','salary-sheet','salary-slips','hr-attendance'];
+    var valid   = ['students','teachers','parents','classes','subjects','assignments','timetable','exams','results','dashboard','salary-config','salary-sheet','salary-slips','hr-attendance'];
     if (valid.indexOf(section) === -1) section = 'dashboard';
     var navEl = document.querySelector('.nav-item[onclick*="\'' + section + '\'"]');
     if (navEl) showSection(section, navEl);
@@ -1130,3 +1129,19 @@ function clearAttendanceDate(classId) {
     const empty = document.getElementById('att-empty-' + classId);
     if (empty) empty.style.display = 'none';
 }
+
+// ════════════════════════════════════════════
+// SALARY SLIPS SEARCH
+// ════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function () {
+    var slipSearch = document.getElementById('slip-search');
+    if (slipSearch) {
+        slipSearch.addEventListener('input', function () {
+            var q = this.value.toLowerCase();
+            document.querySelectorAll('.slip-row').forEach(function (row) {
+                var name = row.querySelector('td:nth-child(2)');
+                row.style.display = (name && name.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+            });
+        });
+    }
+});
