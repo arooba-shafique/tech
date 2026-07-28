@@ -204,9 +204,9 @@ class MonthlySalary(models.Model):
         if working > 0:
             self.per_day_salary = basic / working
 
-        # Calculate days_present from natural calendar days - absent - unpaid leaves
+        # Calculate days_present from natural calendar days - absent only (leaves don't reduce present)
         days_in_month = calendar.monthrange(self.year, self.month)[1]
-        self.days_present = max(0, days_in_month - self.days_absent - self.unpaid_leaves)
+        self.days_present = max(0, days_in_month - self.days_absent)
 
         # Set allowed leaves from config
         self.allowed_leaves = config.max_allowed_leaves
