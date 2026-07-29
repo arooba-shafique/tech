@@ -29,7 +29,7 @@ def get_user_school(user):
 def employee_list(request):
     """Employee list with search, filter, and CRUD actions."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     school = get_user_school(request.user)
@@ -89,7 +89,7 @@ def employee_list(request):
 def employee_detail(request, employee_id):
     """View full employee profile with salary history."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     employee = get_object_or_404(TeacherProfile, pk=employee_id)
@@ -113,7 +113,7 @@ def employee_detail(request, employee_id):
 def employee_edit(request, employee_id):
     """Edit employee basic info."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     employee = get_object_or_404(TeacherProfile, pk=employee_id)
@@ -157,7 +157,7 @@ def employee_edit(request, employee_id):
 def employee_delete(request, employee_id):
     """Soft-delete employee (mark as separated)."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     employee = get_object_or_404(TeacherProfile, pk=employee_id)
@@ -176,7 +176,7 @@ def employee_delete(request, employee_id):
 @login_required(login_url='admin_login')
 def salary_config(request):
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     import calendar as cal
@@ -228,7 +228,7 @@ def salary_config(request):
 @login_required(login_url='admin_login')
 def add_employee_salary(request, employee_id):
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     employee = get_object_or_404(TeacherProfile, pk=employee_id)
@@ -250,7 +250,7 @@ def add_employee_salary(request, employee_id):
 @login_required(login_url='admin_login')
 def edit_employee_salary(request, employee_id):
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     employee = get_object_or_404(TeacherProfile, pk=employee_id)
@@ -273,7 +273,7 @@ def edit_employee_salary(request, employee_id):
 def delete_employee_salary(request, employee_id):
     """Delete salary structure for an employee."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     employee = get_object_or_404(TeacherProfile, pk=employee_id)
@@ -291,7 +291,7 @@ def delete_employee_salary(request, employee_id):
 @login_required(login_url='admin_login')
 def generate_monthly_salary(request):
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     school = get_user_school(request.user)
@@ -366,7 +366,7 @@ def generate_monthly_salary(request):
 @login_required(login_url='admin_login')
 def monthly_salary_list(request):
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     month = request.GET.get('month', timezone.now().month)
@@ -432,7 +432,7 @@ def monthly_salary_list(request):
 @login_required(login_url='admin_login')
 def edit_monthly_salary(request, pk):
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     salary = get_object_or_404(MonthlySalary, pk=pk)
@@ -479,7 +479,7 @@ def edit_monthly_salary(request, pk):
 def delete_monthly_salary(request, pk):
     """Delete a monthly salary record."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     salary = get_object_or_404(MonthlySalary, pk=pk)
@@ -499,7 +499,7 @@ def delete_monthly_salary(request, pk):
 def export_salary_csv(request):
     """Export salary sheet as CSV for bank transfer."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     month = int(request.GET.get('month', timezone.now().month))
@@ -602,7 +602,7 @@ def salary_slip_all(request):
 def monthly_attendance_summary(request):
     """HR enters monthly attendance summary: absents, paid leaves, unpaid leaves, late days."""
     role = getattr(request.user, 'role', None)
-    if not (request.user.is_superuser or role in ('admin', 'admin_manager')):
+    if not (request.user.is_superuser or role in ('admin', 'admin_manager', 'principal')):
         return HttpResponse("Unauthorized", status=403)
 
     school = get_user_school(request.user)
