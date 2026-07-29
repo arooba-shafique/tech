@@ -25,7 +25,7 @@ def get_role(user):
 # ❌ NO @login_required here — this IS the login page
 def admin_login(request):
     # 1. Handle users who are already logged in
-        if request.user.is_authenticated:
+    if request.user.is_authenticated:
         role = get_role(request.user)
         
         # If they ARE a principal, let them through
