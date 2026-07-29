@@ -193,7 +193,7 @@ def salary_config(request):
             config.delete()
             SalaryConfig.objects.create(month=month, year=year)
             messages.success(request, 'Salary configuration reset to defaults.')
-            return redirect('admin_console')
+            return redirect(f'/admin-console/?section=salary-config&month={month}&year={year}')
 
         config.month = month
         config.year = year
@@ -216,9 +216,9 @@ def salary_config(request):
             ms.save()
 
         messages.success(request, 'Salary configuration updated.')
-        return redirect('admin_console')
+        return redirect(f'/admin-console/?section=salary-config&month={month}&year={year}')
 
-    return redirect('admin_console')
+    return redirect(f'/admin-console/?section=salary-config&month={month}&year={year}')
 
 
 # ─────────────────────────────────────────────
