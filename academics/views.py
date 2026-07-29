@@ -158,6 +158,7 @@ def admin_dashboard(request):
                 'hr_month_name': hr_month_name,
                 'hr_months': hr_months,
                 'hr_total_gross': sum(s.gross_salary for s in hr_salaries),
+                'hr_total_basic': sum(s.basic_salary for s in hr_salaries),
                 'hr_total_deductions': sum(s.total_deductions for s in hr_salaries),
                 'hr_total_net': sum(s.net_salary for s in hr_salaries),
                 'hr_attendance_employees': hr_attendance_employees,
