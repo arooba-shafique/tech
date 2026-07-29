@@ -25,16 +25,16 @@ def get_role(user):
 # ❌ NO @login_required here — this IS the login page
 def admin_login(request):
     # 1. Handle users who are already logged in
-    if request.user.is_authenticated:
+        if request.user.is_authenticated:
         role = get_role(request.user)
         
-        # If they ARE an admin, let them through
-        if request.user.is_superuser or role in ["admin", "admin_manager", "principal"]:
+        # If they ARE a principal, let them through
+        if role == "principal":
             return redirect("admin_console")
         
-        # If they ARE NOT an admin (e.g., a Teacher), kick them out so they can log in as Admin
+        # If they are not a principal, kick them out
         else:
-            logout(request) 
+            logout(request)
             # After logout, the code continues down to show the login form
 
     # 2. Handle Messages (Rest of your code is fine)
@@ -51,11 +51,13 @@ def admin_login(request):
 
         if user is not None:
             role = get_role(user)
-        if user.is_superuser or role in ["admin", "admin_manager", "principal"]:
-            login(request, user)
-            return redirect("admin_console")
-        else:
-            messages.error(request, "You are not authorized to access this panel.")
+            if user.is_superuser or role in ["admin", "admin_manager"]:
+                messages.error(request, "Please use the appropriate admin login.")
+            elif role == "principal":
+                login(request, user)
+                return redirect("admin_console")
+            else:
+                messages.error(request, "You are not authorized to access this panel.")
         else:
             messages.error(request, "Invalid username or password.")
 
