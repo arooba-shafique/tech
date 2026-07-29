@@ -45,7 +45,7 @@ def get_user_school(user):
 def admin_dashboard(request):
     role = getattr(request.user, 'role', None)
 
-    if not (request.user.is_superuser or role in ("admin", "admin_manager")):
+    if not (request.user.is_superuser or role in ("admin", "admin_manager", "principal")):
         return HttpResponse("Unauthorized Access", status=403)
 
     school = get_user_school(request.user)
@@ -174,7 +174,7 @@ def admin_dashboard(request):
             import traceback
             traceback.print_exc()
 
-    template = 'admin_manager_dashboard.html' if role == 'admin_manager' else 'admin_dashboard.html'
+    template = 'admin_manager_dashboard.html' if role in ('admin_manager', 'principal') else 'admin_dashboard.html'
     return render(request, template, context)
 
 

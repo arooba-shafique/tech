@@ -29,7 +29,7 @@ def admin_login(request):
         role = get_role(request.user)
         
         # If they ARE an admin, let them through
-        if request.user.is_superuser or role in ["admin", "admin_manager"]:
+        if request.user.is_superuser or role in ["admin", "admin_manager", "principal"]:
             return redirect("admin_console")
         
         # If they ARE NOT an admin (e.g., a Teacher), kick them out so they can log in as Admin
@@ -51,11 +51,11 @@ def admin_login(request):
 
         if user is not None:
             role = get_role(user)
-            if user.is_superuser or role in ["admin", "admin_manager"]:
-                login(request, user)
-                return redirect("admin_console")
-            else:
-                messages.error(request, "You are not authorized to access this panel.")
+        if user.is_superuser or role in ["admin", "admin_manager", "principal"]:
+            login(request, user)
+            return redirect("admin_console")
+        else:
+            messages.error(request, "You are not authorized to access this panel.")
         else:
             messages.error(request, "Invalid username or password.")
 
