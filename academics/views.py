@@ -174,7 +174,7 @@ def admin_dashboard(request):
             import traceback
             traceback.print_exc()
 
-    template = 'admin_manager_dashboard.html' if role in ('admin_manager', 'principal') else 'admin_dashboard.html'
+    template = 'admin_manager_dashboard.html' if role == 'admin_manager' else 'admin_dashboard.html'
     return render(request, template, context)
 
 
