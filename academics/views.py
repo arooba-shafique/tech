@@ -119,13 +119,6 @@ def admin_dashboard(request):
             sheet_year = int(request.GET.get('year', today.year)) if request.GET.get('year') else today.year
 
             hr_salaries = MonthlySalary.objects.filter(month=sheet_month, year=sheet_year).select_related('employee')
-            sheet_employee = request.GET.get('employee', '')
-            sheet_employee_name = ''
-            if sheet_employee:
-                hr_salaries = hr_salaries.filter(employee_id=sheet_employee)
-                emp_obj = teachers_qs.filter(id=sheet_employee).first()
-                if emp_obj:
-                    sheet_employee_name = emp_obj.full_name
             hr_month_name = calendar.month_name[sheet_month]
             hr_months = [(i, calendar.month_name[i]) for i in range(1, 13)]
 
@@ -164,8 +157,6 @@ def admin_dashboard(request):
                 'hr_year': sheet_year,
                 'hr_month_name': hr_month_name,
                 'hr_months': hr_months,
-                'sheet_employee': sheet_employee,
-                'sheet_employee_name': sheet_employee_name,
                 'hr_total_gross': sum(s.gross_salary for s in hr_salaries),
                 'hr_total_basic': sum(s.basic_salary for s in hr_salaries),
                 'hr_total_deductions': sum(s.total_deductions for s in hr_salaries),
