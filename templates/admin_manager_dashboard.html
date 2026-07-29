@@ -1220,23 +1220,34 @@
                             <input type="number" name="year" value="{{ hr_year }}" min="2020" max="2030" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:100px;">
                         </label>
                         <label style="display:flex;flex-direction:column;gap:5px;">
-                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Employee</span>
-                            <select name="employee_id" id="slip-employee" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;min-width:180px;">
-                                <option value="">All Employees</option>
-                                {% for emp in hr_all_employees %}
-                                <option value="{{ emp.id }}" {% if emp.id|stringformat:"s" == slip_selected_employee %}selected{% endif %}>{{ emp.full_name }}</option>
-                                {% endfor %}
-                            </select>
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Search Employee</span>
+                            <input type="text" id="slip-emp-search" placeholder="Type employee name…" autocomplete="off" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:220px;">
                         </label>
-                        <label style="display:flex;flex-direction:column;gap:5px;">
-                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Search</span>
-                            <input type="text" id="slip-search" placeholder="Type name..." style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;min-width:150px;">
-                        </label>
-                        <button type="submit" class="btn btn-primary" style="padding:8px 20px;">Load Slips</button>
                     </form>
+                    <script>
+                    (function() {
+                        var form = document.getElementById('slip-filter-form');
+                        if (!form) return;
+                        var monthSel = form.querySelector('select[name="month"]');
+                        var yearInp = form.querySelector('input[name="year"]');
+                        var searchInput = document.getElementById('slip-emp-search');
+                        if (monthSel) monthSel.addEventListener('change', function() { form.submit(); });
+                        if (yearInp) yearInp.addEventListener('change', function() { form.submit(); });
+                        if (searchInput) {
+                            searchInput.addEventListener('input', function() {
+                                var q = this.value.toLowerCase().trim();
+                                var rows = document.querySelectorAll('#section-salary-slips tbody tr');
+                                rows.forEach(function(row) {
+                                    var name = (row.querySelector('td:nth-child(2)') || {}).textContent || '';
+                                    row.style.display = (!q || name.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+                                });
+                            });
+                        }
+                    })();
+                    </script>
 
-                    {% if slip_salaries is not None %}
-                    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">{{ hr_month_name }} {{ hr_year }}{% if slip_selected_employee %} — {{ slip_selected_name }}{% else %} — All Employees{% endif %}</div>
+                    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">{{ hr_month_name }} {{ hr_year }}</div>
+                    {% if slip_salaries %}
                     <div style="overflow-x:auto;">
                         <table style="width:100%;border-collapse:collapse;font-size:12px;">
                             <thead>
@@ -1273,7 +1284,7 @@
                         </table>
                     </div>
                     {% else %}
-                    <div style="text-align:center;color:var(--text-muted);padding:40px;">Select month and employee(s), then click <strong>Load Slips</strong>.</div>
+                    <div style="text-align:center;color:var(--text-muted);padding:40px;">No salary slips found for {{ hr_month_name }} {{ hr_year }}.</div>
                     {% endif %}
                 </div>
             </div>

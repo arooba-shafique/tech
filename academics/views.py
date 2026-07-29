@@ -125,16 +125,10 @@ def admin_dashboard(request):
             # All employees for salary slips dropdown
             hr_all_employees = teachers_qs.filter(is_employee_separated=False).order_by('full_name')
 
-            # Salary slips: filter by employee if selected
+            # Salary slips
             slip_selected_employee = request.GET.get('employee_id', '')
-            slip_salaries = None
+            slip_salaries = MonthlySalary.objects.filter(month=sheet_month, year=sheet_year).select_related('employee')
             slip_selected_name = ''
-            if request.GET.get('section') == 'salary-slips':
-                slip_salaries = MonthlySalary.objects.filter(month=sheet_month, year=sheet_year).select_related('employee')
-                if slip_selected_employee:
-                    slip_salaries = slip_salaries.filter(employee_id=slip_selected_employee)
-                    emp_obj = hr_all_employees.filter(id=slip_selected_employee).first()
-                    slip_selected_name = emp_obj.full_name if emp_obj else ''
 
             # Monthly attendance data
             att_month = int(request.GET.get('month', today.month)) if request.GET.get('month') and request.GET.get('section') == 'hr-attendance' else today.month
