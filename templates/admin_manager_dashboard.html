@@ -781,6 +781,16 @@
                 </label>
                 <button type="submit" class="btn btn-primary" style="padding:8px 20px;">Load</button>
             </form>
+            <script>
+            (function() {
+                var form = document.querySelector('#section-hr-attendance form[method="get"]');
+                if (!form) return;
+                var monthSel = form.querySelector('select[name="month"]');
+                var yearInp = form.querySelector('input[name="year"]');
+                if (monthSel) monthSel.addEventListener('change', function() { form.submit(); });
+                if (yearInp) yearInp.addEventListener('change', function() { form.submit(); });
+            })();
+            </script>
             <form method="post" action="{% url 'hr_monthly_attendance' %}">
                 {% csrf_token %}
                 <input type="hidden" name="month" value="{{ att_month }}">
