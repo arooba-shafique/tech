@@ -29,7 +29,7 @@ def admin_login(request):
         role = get_role(request.user)
         
         # If they ARE a principal, let them through
-        if role == "principal":
+        if role in ["admin_manager", "principal"]:
             return redirect("admin_console")
         
         # If they are not a principal, kick them out
@@ -51,9 +51,9 @@ def admin_login(request):
 
         if user is not None:
             role = get_role(user)
-            if user.is_superuser or role in ["admin", "admin_manager"]:
+            if user.is_superuser or role in ["admin"]:
                 messages.error(request, "Please use the appropriate admin login.")
-            elif role == "principal":
+            elif role in ["admin_manager", "principal"]:
                 login(request, user)
                 return redirect("admin_console")
             else:

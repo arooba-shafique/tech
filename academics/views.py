@@ -45,7 +45,7 @@ def get_user_school(user):
 def admin_dashboard(request):
     role = getattr(request.user, 'role', None)
 
-    if not (request.user.is_authenticated and role == "principal"):
+    if not (request.user.is_authenticated and role in ("admin_manager", "principal")):
         return HttpResponse("Unauthorized Access", status=403)
 
     school = get_user_school(request.user)
