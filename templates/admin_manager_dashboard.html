@@ -1380,16 +1380,5 @@ function clearAttendanceDate(classId) {
 @media (max-width:480px) { #drawer { width:100vw!important;border-radius:16px 16px 0 0!important;top:auto!important;bottom:0!important;left:0!important;transform:none!important; } }
 </style>
 
-<script>
-(function() {
-    var params = new URLSearchParams(window.location.search);
-    var section = params.get('section');
-    if (section) {
-        var navEl = document.querySelector('.nav-item[onclick*="\'' + section + '\'"]');
-        if (navEl) showSection(section, navEl);
-    }
-})();
-</script>
-
 </body>
 </html>

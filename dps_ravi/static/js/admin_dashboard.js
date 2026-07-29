@@ -59,22 +59,35 @@ function toggleSidebar() {
 // ════════════════════════════════════════════
 window.addEventListener('load', function () {
     var toast = document.getElementById('toast-msg');
-    if (!toast) return;
 
-    var rawTags = (toast.dataset.section || '').trim();
-    var parts   = rawTags.split(/\s+/);
-    var section = parts[parts.length - 1];
-    var valid   = ['students','teachers','parents','classes','subjects','assignments','timetable','exams','results','dashboard','salary-config','salary-sheet','salary-slips','hr-attendance'];
-    if (valid.indexOf(section) === -1) section = 'dashboard';
-    var navEl = document.querySelector('.nav-item[onclick*="\'' + section + '\'"]');
-    if (navEl) showSection(section, navEl);
+    // Priority: URL param > toast data-section
+    var section = '';
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlSection = urlParams.get('section');
+    var valid   = ['students','teachers','parents','classes','subjects','assignments','timetable','exams','results','dashboard','salary-config','salary-sheet','salary-slips','hr-attendance','credentials'];
 
-    toast.style.display = 'flex';
-    setTimeout(function () {
-        toast.style.transition = 'opacity 0.35s ease';
-        toast.style.opacity = '0';
-        setTimeout(function () { toast.style.display = 'none'; }, 350);
-    }, 2000);
+    if (urlSection && valid.indexOf(urlSection) !== -1) {
+        section = urlSection;
+    } else if (toast) {
+        var rawTags = (toast.dataset.section || '').trim();
+        var parts   = rawTags.split(/\s+/);
+        section = parts[parts.length - 1];
+        if (valid.indexOf(section) === -1) section = 'dashboard';
+    }
+
+    if (section) {
+        var navEl = document.querySelector('.nav-item[onclick*="\'' + section + '\'"]');
+        if (navEl) showSection(section, navEl);
+    }
+
+    if (toast) {
+        toast.style.display = 'flex';
+        setTimeout(function () {
+            toast.style.transition = 'opacity 0.35s ease';
+            toast.style.opacity = '0';
+            setTimeout(function () { toast.style.display = 'none'; }, 350);
+        }, 2000);
+    }
 });
 
 function showToast(msg) {
