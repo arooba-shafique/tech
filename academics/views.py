@@ -103,7 +103,7 @@ def admin_dashboard(request):
     }
 
     # Add HR data for admin_manager
-    if role == 'admin_manager':
+    if role in ('admin_manager', 'principal'):
         try:
             from hr.models import SalaryConfig, MonthlySalary, EmployeeAttendance
             import calendar
