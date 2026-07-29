@@ -1100,6 +1100,15 @@
                             <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Year</span>
                             <input type="number" name="year" id="sheet-year" value="{{ hr_year }}" min="2020" max="2030" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:100px;">
                         </label>
+                        <label style="display:flex;flex-direction:column;gap:5px;">
+                            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Employee</span>
+                            <select name="employee" id="sheet-employee" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;">
+                                <option value="">All Employees</option>
+                                {% for emp in hr_all_employees %}
+                                <option value="{{ emp.id }}" {% if emp.id|stringformat:"s" == sheet_employee|stringformat:"s" %}selected{% endif %}>{{ emp.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
                     </form>
                     <script>
                     (function() {
@@ -1107,8 +1116,10 @@
                         if (!form) return;
                         var monthSel = form.querySelector('select[name="month"]');
                         var yearInp = form.querySelector('input[name="year"]');
+                        var empSel = form.querySelector('select[name="employee"]');
                         if (monthSel) monthSel.addEventListener('change', function() { form.submit(); });
                         if (yearInp) yearInp.addEventListener('change', function() { form.submit(); });
+                        if (empSel) empSel.addEventListener('change', function() { form.submit(); });
                     })();
                     </script>
                     <div style="font-size:14px;font-weight:700;margin-bottom:14px;">{{ hr_month_name }} {{ hr_year }}</div>
