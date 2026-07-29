@@ -67,7 +67,7 @@ def admin_login(request):
 @login_required(login_url="admin_login")
 def manage_admins(request):
     role = get_role(request.user)
-    if not request.user.is_superuser and role != "admin":
+    if not request.user.is_superuser and role not in ("admin", "principal"):
         return HttpResponse("Unauthorized", status=403)
 
     superusers     = User.objects.filter(is_superuser=True)
@@ -117,7 +117,7 @@ def admin_password_reset(request):
 @login_required(login_url="admin_login")
 def add_admin_manager(request):
     role = get_role(request.user)
-    if not request.user.is_superuser and role != "admin":
+    if not request.user.is_superuser and role not in ("admin", "principal"):
         return HttpResponse("Unauthorized", status=403)
 
     if request.method == "POST":
@@ -148,7 +148,7 @@ def add_admin_manager(request):
 @login_required(login_url="admin_login")
 def edit_admin_manager(request, pk):
     role = get_role(request.user)
-    if not request.user.is_superuser and role != "admin":
+    if not request.user.is_superuser and role not in ("admin", "principal"):
         return HttpResponse("Unauthorized", status=403)
 
     admin_mgr = get_object_or_404(AdminManager, pk=pk)
@@ -179,7 +179,7 @@ def edit_admin_manager(request, pk):
 @login_required(login_url="admin_login")
 def delete_admin_manager(request, pk):
     role = get_role(request.user)
-    if not request.user.is_superuser and role != "admin":
+    if not request.user.is_superuser and role not in ("admin", "principal"):
         return HttpResponse("Unauthorized", status=403)
 
     admin_mgr = get_object_or_404(AdminManager, pk=pk)
